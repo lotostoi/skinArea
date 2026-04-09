@@ -1,0 +1,87 @@
+---
+description: Правила проектирования API в проекте SkinsArena
+alwaysApply: true
+---
+
+# Правила API
+
+## Формат
+
+- REST JSON API. Префикс `/api/v1/`
+- Ответы: `{ "data": ... }` для успеха, `{ "message": "...", "errors": {...} }` для ошибок
+- HTTP-коды: 200 (ок), 201 (создано), 400 (bad request), 401 (не авторизован), 403 (нет прав), 404 (не найдено), 422 (валидация), 500 (ошибка)
+- Пагинация: `?page=1&per_page=20`. Ответ включает `meta: { current_page, last_page, total }`
+
+## Маршруты MVP
+
+```
+# Авторизация
+GET    /auth/steam              — Редирект на Steam OpenID
+GET    /auth/steam/callback     — Callback от Steam
+POST   /auth/logout             — Выход
+GET    /api/v1/user             — Текущий пользователь + балансы
+
+# Маркетплейс
+GET    /api/v1/market/items     — Листинг (фильтры: category, wear, price_min, price_max, search)
+GET    /api/v1/market/items/{id} — Детали предмета
+POST   /api/v1/market/items     — Выставить на продажу (auth)
+DELETE /api/v1/market/items/{id} — Снять с продажи (auth, owner)
+
+# Корзина и покупка
+POST   /api/v1/cart/purchase    — Купить предметы из корзины (auth)
+
+# Сделки
+GET    /api/v1/deals            — Мои сделки (auth)
+POST   /api/v1/deals/{id}/send  — Отправить трейд (auth, seller)
+POST   /api/v1/deals/{id}/cancel — Отменить сделку (auth)
+
+# Баланс
+GET    /api/v1/balance          — Мои балансы (auth)
+POST   /api/v1/balance/deposit  — Инициировать пополнение (auth)
+POST   /api/v1/balance/deposit/callback — Вебхук от платёжки (без auth, подпись)
+POST   /api/v1/balance/withdraw — Заявка на вывод (auth)
+
+# Инвентарь Steam
+GET    /api/v1/inventory/steam  — Мой Steam-инвентарь (auth)
+
+# ЛК маркета
+GET    /api/v1/profile/listings — Мои активные продажи (auth)
+GET    /api/v1/profile/sold     — Проданные (auth)
+
+# Транзакции
+GET    /api/v1/transactions     — История транзакций (auth)
+
+# Кейсы
+GET    /api/v1/cases            — Список кейсов
+GET    /api/v1/cases/{id}       — Детали кейса (содержимое, уровни)
+POST   /api/v1/cases/{id}/open  — Открыть кейс (auth)
+
+# ЛК кейсов
+GET    /api/v1/profile/case-inventory — Мой инвентарь кейсов (auth)
+POST   /api/v1/profile/case-inventory/{id}/sell — Продать за баланс (auth)
+POST   /api/v1/profile/case-inventory/{id}/withdraw — Вывести в Steam (auth)
+
+# Апгрейд
+GET    /api/v1/upgrade/items    — Доступные предметы для апгрейда
+POST   /api/v1/upgrade          — Сделать апгрейд (auth)
+```
+
+## Валидация
+
+- Каждый POST/PUT/PATCH — через Form Request класс
+- Имя класса: `{Action}{Resource}Request` → `PurchaseItemRequest`, `OpenCaseRequest`
+- Сообщения ошибок — на русском (для MVP)
+
+## API Resources
+
+- Каждая модель — свой Resource класс
+- Resource определяет, какие поля отдавать клиенту
+- Никогда не отдавать модель напрямую (утечка данных)
+- Вложенные ресурсы: `DealResource` включает `MarketItemResource`
+
+## Авторизация запросов
+
+- `auth:sanctum` middleware для всех `/api/v1/*` кроме листинга маркета и кейсов
+- Маркет и кейсы (GET) — доступны без авторизации
+- Покупка, продажа, открытие кейсов — только авторизованные
+- Админские эндпоинты — через Filament, не через API

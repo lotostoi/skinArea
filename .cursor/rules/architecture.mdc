@@ -1,0 +1,115 @@
+---
+description: Архитектура проекта SkinsArena — правила и контекст для AI-ассистента
+alwaysApply: true
+---
+
+# Архитектура проекта SkinsArena
+
+## Описание
+
+SkinsArena — P2P-маркетплейс скинов CS2 + кейсы + апгрейд. Laravel 13 + Vue 3 SPA.
+
+## Стек технологий
+
+| Компонент | Технология |
+|---|---|
+| Бэкенд | Laravel 13, PHP 8.4 |
+| Фронтенд | Vue 3 (Composition API) + TypeScript |
+| Связка фронт/бэк | Inertia.js или отдельный SPA (Vue) + API |
+| Админка | Filament PHP 5 |
+| ORM | Eloquent |
+| БД | PostgreSQL 16 |
+| Кеш / очереди | Redis + Laravel Queue |
+| WebSocket | Laravel Reverb (или Soketi) + Laravel Echo |
+| Авторизация | Laravel Sanctum + Steam OpenID |
+| Сборка фронта | Vite |
+| CSS | Tailwind CSS |
+| Файлы | S3-совместимое хранилище (или local для MVP) |
+| Steam | steam-tradeoffer-manager (Node-микросервис) или PHP-библиотека |
+
+## Структура проекта
+
+```
+SkinsArena/
+├── app/
+│   ├── Actions/              # Одноразовые бизнес-действия (OpenCase, PurchaseItem, CreateTrade)
+│   ├── DTOs/                 # Data Transfer Objects
+│   ├── Enums/                # PHP Enums (DealStatus, BalanceType, ItemWear)
+│   ├── Events/               # Laravel Events (ItemPurchased, CaseOpened, TradeCompleted)
+│   ├── Exceptions/           # Кастомные исключения (InsufficientBalance, TradeError)
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Api/          # API-контроллеры (маркет, кейсы, апгрейд, ЛК)
+│   │   │   └── Admin/        # Если нужны кастомные контроллеры для админки (Filament обычно покрывает)
+│   │   ├── Middleware/
+│   │   ├── Requests/         # Form Requests (валидация)
+│   │   └── Resources/        # API Resources (трансформация ответов)
+│   ├── Jobs/                 # Очереди (CheckTradeStatus, ProcessWithdrawal)
+│   ├── Listeners/            # Обработчики событий
+│   ├── Models/               # Eloquent-модели
+│   ├── Observers/            # Model Observers (логирование изменений балансов)
+│   ├── Policies/             # Authorization Policies
+│   ├── Services/             # Сервисы с бизнес-логикой (BalanceService, SteamService, CaseService)
+│   └── Support/              # Хелперы, утилиты
+├── config/
+│   └── skinsarena.php        # Все настраиваемые значения проекта (комиссии, таймауты, лимиты)
+├── database/
+│   ├── migrations/
+│   ├── seeders/
+│   └── factories/
+├── resources/
+│   ├── js/                   # Vue 3 SPA
+│   │   ├── components/       # Переиспользуемые компоненты
+│   │   ├── composables/      # Vue composables (useBalance, useWebSocket)
+│   │   ├── layouts/          # Layouts (MainLayout, AdminLayout)
+│   │   ├── pages/            # Страницы (Market, Cases, Upgrade, Profile)
+│   │   ├── stores/           # Pinia stores (auth, balance, cart, notifications)
+│   │   ├── types/            # TypeScript типы
+│   │   └── utils/            # Утилиты фронтенда
+│   └── views/                # Blade (только entry point для SPA)
+├── routes/
+│   ├── api.php               # API-маршруты
+│   ├── web.php               # Web-маршруты (Steam auth callback, SPA fallback)
+│   └── channels.php          # WebSocket-каналы
+├── documentation/            # Документация проекта
+└── tests/
+    ├── Unit/                 # Юнит-тесты (сервисы, формулы)
+    └── Feature/              # Интеграционные тесты (API, сделки)
+```
+
+## Модули MVP
+
+1. **Авторизация** — Steam OpenID, Sanctum, 2 роли (user, admin)
+2. **P2P-маркетплейс** — листинг, покупка, фильтры (цена, категория, износ)
+3. **Цикл сделки** — state machine: created → paid → trade_sent → trade_accepted → completed | cancelled
+4. **Балансы** — основной + удержанный (без бонусного в MVP)
+5. **Кейсы** — открытие с настраиваемыми шансами, инвентарь, продажа за баланс
+6. **Апгрейд** — баланс → случайный предмет с формулой шанса
+7. **Админ-панель** — Filament: пользователи, кейсы, финансы, заявки на вывод
+8. **Уведомления** — только WebSocket (Laravel Echo + Reverb)
+
+## Критичные бизнес-правила
+
+### Финансовые операции
+- ВСЕ операции с балансами — через `DB::transaction()`
+- При одновременных запросах — `lockForUpdate()` на строку баланса
+- Каждое изменение баланса создаёт запись в таблице `transactions`
+- Удержанный баланс разблокируется ТОЛЬКО после подтверждения Steam-трейда
+
+### P2P-сделки
+- Модель `Deal` с enum `DealStatus` и чёткими переходами состояний
+- Покупка предмета: `lockForUpdate()` на строку `MarketItem` → проверка статуса → списание → создание Deal
+- Таймауты через delayed Jobs (CheckTradeTimeout)
+
+### Кейсы
+- Генерация результата — ТОЛЬКО на сервере
+- Шансы настраиваются в админке (Filament), хранятся в БД
+- Списание баланса и выдача приза — в одной транзакции
+
+## Документация
+
+- `documentation/00-technical-specification.docx` — стартовое ТЗ
+- `documentation/01-glossary.md` — глоссарий терминов
+- `documentation/02-questions.md` — открытые вопросы по ТЗ
+- `documentation/03-stack-comparison.md` — сравнение стеков
+- `documentation/04-mvp-plan.md` — MVP-план: что строить, что выкинуть

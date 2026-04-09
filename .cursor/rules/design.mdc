@@ -1,0 +1,90 @@
+---
+description: Дизайн-система SkinsArena — цвета, стили, компоненты. Применять ВСЕГДА при написании фронтенда и стилизации
+alwaysApply: true
+---
+
+# Правила дизайна SkinsArena
+
+## Ориентиры дизайна
+
+- Кейсы: ggdrop.black
+- Маркетплейс: lis-skins.com
+- Только тёмная тема. Светлой темы нет
+- Фиксированная ширина ~1400px, горизонтальный скролл при сужении
+
+## Палитра фонов
+
+- Основной фон страницы: `#0e0e12`
+- Карточки, панели, модалки: `#1a1a24`
+- Hover на карточках: `#22222e`
+- Sidebar, header: `#12121a`
+- Поля ввода: `#16161e`
+- Выпадающие меню, тултипы: `#252530`
+
+## Акценты
+
+- Primary (золотой): `#f59e0b`, hover `#d97706`, light `#fbbf24`
+- Secondary (фиолетовый): `#8b5cf6`, hover `#7c3aed`
+- Success: `#22c55e`
+- Warning: `#f59e0b`
+- Danger: `#ef4444`
+- Info: `#3b82f6`
+
+## Текст
+
+- Основной: `#e2e8f0`
+- Вторичный: `#94a3b8`
+- Приглушённый: `#64748b`
+- На primary-кнопках: `#0e0e12` (тёмный на золотом)
+
+## Границы
+
+- Default: `#2a2a3a`
+- Hover: `#3a3a4a`
+- Focus: `#f59e0b`
+
+## Цвета редкости скинов CS2
+
+- Consumer (ширпотреб): `#b0c3d9`
+- Industrial (промышленное): `#5e98d9`
+- Mil-Spec (армейское): `#4b69ff`
+- Restricted (запрещённое): `#8847ff`
+- Classified (засекреченное): `#d32ce6`
+- Covert (тайное): `#eb4b4b`
+- Contraband (контрабанда): `#e4ae39`
+
+Тень карточки скина = цвет редкости с `opacity 0.25`, на hover `0.4`.
+
+## Цвета износа (Float)
+
+- FN: `#22c55e`, MW: `#16a34a`, FT: `#f59e0b`, WW: `#d97706`, BS: `#ef4444`
+
+## Типографика
+
+- Шрифт: Inter (Google Fonts), fallback `system-ui, -apple-system, sans-serif`
+- Body: 14px/400, H1: 28px/700, H2: 22px/600, H3: 18px/600, Small: 12px/400
+- Цена на карточке: 16px/700, цена в деталях: 24px/700
+
+## Компоненты
+
+- **Кнопка Primary:** фон `#f59e0b`, текст `#0e0e12`, hover `#d97706`, border-radius `6px`
+- **Кнопка Secondary:** transparent, border `#2a2a3a`, текст `#e2e8f0`, hover bg `#22222e`
+- **Кнопка Danger:** фон `#ef4444`, текст white, hover `#dc2626`
+- **Карточка скина:** фон `#1a1a24`, border `1px solid #2a2a3a`, radius `8px`, hover `scale(1.03)` + тень ярче
+- **Карточка кейса:** аналогично, цена жёлтым (primary)
+- **Модалка:** overlay `rgba(0,0,0,0.7)`, фон `#1a1a24`, radius `12px`
+- **Инпуты:** фон `#16161e`, border `#2a2a3a`, focus border `#f59e0b`, radius `6px`
+
+## Анимации
+
+- Hover карточек: `transition: transform 0.2s ease, box-shadow 0.2s ease`
+- Модалки: `opacity 0→1 + translateY(10px→0)`, 200ms
+- Toast-уведомления: slide-in справа, 300ms
+
+## Иконки
+
+- Heroicons, стиль outlined для навигации, solid для действий
+
+## Полная документация
+
+Детали, Tailwind-конфиг, все токены — см. `documentation/06-design-system.md`

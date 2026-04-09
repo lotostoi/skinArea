@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Filament\Resources\MarketItems\Tables;
+
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+
+class MarketItemsTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('seller.id')
+                    ->searchable(),
+                TextColumn::make('asset_id')
+                    ->searchable(),
+                TextColumn::make('name')
+                    ->searchable(),
+                ImageColumn::make('image_url'),
+                TextColumn::make('wear')
+                    ->badge()
+                    ->searchable(),
+                TextColumn::make('float_value')
+                    ->numeric()
+                    ->sortable(),
+                TextColumn::make('rarity')
+                    ->badge()
+                    ->searchable(),
+                TextColumn::make('category')
+                    ->badge()
+                    ->searchable(),
+                TextColumn::make('price')
+                    ->money()
+                    ->sortable(),
+                TextColumn::make('status')
+                    ->badge()
+                    ->searchable(),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                //
+            ])
+            ->recordActions([
+                EditAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+}

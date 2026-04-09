@@ -1,0 +1,120 @@
+---
+description: Правила написания Vue 3 фронтенда в проекте SkinsArena
+alwaysApply: true
+---
+
+# Правила Vue 3 + TypeScript
+
+## Общие
+
+- Vue 3 + Composition API + `<script setup lang="ts">`. Никогда Options API
+- TypeScript strict mode. Все пропсы, эмиты, рефы — типизированы
+- Tailwind CSS для стилизации. Кастомный CSS — только если Tailwind не справляется
+- Pinia для глобального состояния (auth, balance, cart, notifications)
+
+## Структура компонентов
+
+```
+resources/js/
+├── app.ts                    # Entry point
+├── components/               # Переиспользуемые UI-компоненты
+│   ├── ui/                   # Базовые (Button, Modal, Input, Badge, Card)
+│   ├── market/               # Маркетплейс (ItemCard, ItemFilters, CartModal)
+│   ├── cases/                # Кейсы (CaseCard, RouletteAnimation, CaseGrid)
+│   ├── upgrade/              # Апгрейд (UpgradeWheel, ItemSelector)
+│   └── layout/               # Layout (Header, Sidebar, BalanceDisplay)
+├── composables/              # Реактивная логика
+│   ├── useAuth.ts
+│   ├── useBalance.ts
+│   ├── useWebSocket.ts
+│   ├── useCart.ts
+│   └── useNotifications.ts
+├── pages/                    # Страницы (роутинг)
+│   ├── MarketPage.vue
+│   ├── CasesPage.vue
+│   ├── CaseOpenPage.vue
+│   ├── UpgradePage.vue
+│   ├── ProfilePage.vue
+│   ├── ProfileInventoryPage.vue
+│   └── ProfileTransactionsPage.vue
+├── stores/                   # Pinia stores
+│   ├── auth.ts
+│   ├── balance.ts
+│   ├── cart.ts
+│   └── notifications.ts
+├── types/                    # TypeScript типы
+│   ├── api.ts                # Типы ответов API
+│   ├── models.ts             # Типы моделей (User, Item, Deal, Case)
+│   └── enums.ts              # Enum-типы (DealStatus, ItemWear, Rarity)
+├── utils/                    # Утилиты
+│   ├── api.ts                # Axios instance с interceptors
+│   ├── format.ts             # Форматирование (цены, даты, float)
+│   └── constants.ts          # Константы (цвета редкости, категории оружия)
+└── router/
+    └── index.ts              # Vue Router
+```
+
+## Компоненты
+
+- Имена: PascalCase (`ItemCard.vue`, `CartModal.vue`)
+- Один компонент = один файл. Максимум 200 строк, иначе декомпозировать
+- Props — через `defineProps<T>()` с интерфейсом
+- Emits — через `defineEmits<T>()`
+- Не использовать `any`. Если тип неизвестен — `unknown` + type guard
+
+```vue
+<script setup lang="ts">
+import type { MarketItem } from '@/types/models'
+
+const props = defineProps<{
+  item: MarketItem
+  showPrice: boolean
+}>()
+
+const emit = defineEmits<{
+  addToCart: [itemId: number]
+}>()
+</script>
+```
+
+## Стилизация
+
+- Тёмная тема — основная и единственная
+- Tailwind: использовать `@apply` в компонентах только для сложных переиспользуемых стилей
+- Цвета редкости скинов — через CSS-переменные или Tailwind config:
+  - Consumer Grade (ширпотреб) — белый/серый
+  - Industrial Grade (промышленное) — голубой
+  - Mil-Spec (армейское) — синий
+  - Restricted (запрещённое) — фиолетовый
+  - Classified (засекреченное) — розовый
+  - Covert (тайное) — красный
+  - Contraband (контрабанда) — золотой
+- Float-цвета: FN — зелёный, MW — тёмно-зелёный, FT — оранжевый, WW — тёмно-оранжевый, BS — красный
+
+## API-запросы
+
+- Один файл `utils/api.ts` с Axios instance
+- Interceptor для добавления Sanctum token
+- Interceptor для обработки 401 (редирект на логин)
+- Типизированные функции для каждого эндпоинта
+
+```typescript
+export async function fetchMarketItems(filters: MarketFilters): Promise<PaginatedResponse<MarketItem>> {
+  const { data } = await api.get('/api/v1/market/items', { params: filters })
+  return data
+}
+```
+
+## State Management (Pinia)
+
+- Store для каждой доменной области: auth, balance, cart, notifications
+- Stores НЕ делают API-запросы напрямую — используют функции из `utils/api.ts`
+- WebSocket-обновления баланса и уведомлений — через composable `useWebSocket`
+
+## Дизайн
+
+- Фиксированный макет ~1400px
+- Ориентиры: ggdrop.black (кейсы), lis-skins.com (маркет)
+- При сужении окна — горизонтальный скролл
+- Карточки предметов: изображение + название + цена + float + тень редкости
+- Hover на карточках: scale-эффект

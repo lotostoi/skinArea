@@ -1,0 +1,120 @@
+---
+description: Правила проектирования базы данных SkinsArena
+alwaysApply: true
+---
+
+# Правила базы данных
+
+## Общие
+
+- PostgreSQL 16
+- Миграции Laravel — единственный способ изменения схемы
+- Имена таблиц: snake_case, множественное число (users, market_items, deals)
+- Имена колонок: snake_case (user_id, created_at, balance_amount)
+- Foreign keys — ВСЕГДА. Каскадное удаление — только где уместно (обычно restrict)
+- Индексы — на все колонки, по которым ищем/фильтруем
+- Soft deletes — только для данных, которые нужно восстанавливать (users, deals). НЕ для транзакций
+
+## Основные таблицы MVP
+
+### users
+- id, steam_id (unique), username, avatar_url, trade_url (nullable)
+- role (enum: user, admin)
+- is_banned, banned_until, ban_reason
+- created_at, updated_at
+
+### balances
+- id, user_id (FK, unique per type), type (enum: main, hold)
+- amount (decimal 12,2, default 0, CHECK >= 0)
+- updated_at
+
+### transactions
+- id, user_id (FK), type (enum: deposit, withdrawal, purchase, sale, case_open, case_sell, upgrade)
+- amount (decimal 12,2, может быть отрицательным)
+- balance_after (decimal 12,2)
+- reference_type, reference_id (полиморфная связь: Deal, CaseOpening, Upgrade)
+- metadata (jsonb, nullable)
+- created_at
+
+### market_items
+- id, seller_id (FK users), asset_id (Steam asset ID)
+- name, image_url, wear (enum: FN, MW, FT, WW, BS), float_value
+- rarity (enum), category (enum: knives, gloves, pistols, rifles...)
+- price (decimal 12,2)
+- status (enum: active, reserved, sold, cancelled)
+- created_at, updated_at
+
+### deals
+- id, buyer_id (FK), seller_id (FK), market_item_id (FK)
+- price (decimal 12,2), commission (decimal 12,2)
+- status (enum: created, paid, trade_sent, trade_accepted, completed, cancelled)
+- trade_offer_id (nullable, Steam trade ID)
+- cancelled_reason (nullable)
+- expires_at (timestamp)
+- created_at, updated_at
+
+### cases
+- id, name, image_url, price (decimal 12,2)
+- category_id (FK case_categories), sort_order
+- is_active (boolean)
+- created_at, updated_at
+
+### case_categories
+- id, name, sort_order, is_visible
+
+### case_levels
+- id, case_id (FK), level (integer 1-5), name
+- chance (decimal 5,2, в процентах)
+- created_at
+
+### case_items
+- id, case_level_id (FK)
+- name, image_url, price (decimal 12,2)
+- wear (enum), rarity (enum)
+- created_at
+
+### case_openings
+- id, user_id (FK), case_id (FK), case_item_id (FK)
+- cost (decimal 12,2, сколько заплатил)
+- won_item_price (decimal 12,2)
+- status (enum: in_inventory, sold, withdrawn, used_in_upgrade)
+- created_at
+
+### upgrades
+- id, user_id (FK)
+- bet_amount (decimal 12,2)
+- target_item_name, target_item_price (decimal 12,2)
+- chance (decimal 5,2)
+- is_won (boolean)
+- won_case_opening_id (FK case_openings, nullable)
+- created_at
+
+### withdrawal_requests
+- id, user_id (FK), amount (decimal 12,2)
+- status (enum: pending, approved, rejected, completed)
+- admin_comment (nullable)
+- processed_at (nullable), processed_by (FK users, nullable)
+- created_at
+
+## Правила для финансовых таблиц
+
+- Баланс: `CHECK (amount >= 0)` на уровне БД — последняя линия обороны
+- Транзакции: НИКОГДА не удалять и не изменять. Только INSERT
+- `balance_after` в transactions — для аудита (можно восстановить историю баланса)
+- Индекс на `transactions(user_id, created_at)` — для быстрого отображения истории
+
+## Индексы
+
+```
+market_items: (status, category), (status, price), (seller_id, status)
+deals: (buyer_id, status), (seller_id, status), (status, expires_at)
+transactions: (user_id, created_at), (reference_type, reference_id)
+case_openings: (user_id, status), (user_id, created_at)
+```
+
+## Миграции
+
+- Каждая миграция — одна логическая операция
+- Всегда писать `down()` метод
+- Для данных (seed) — использовать seeders, не миграции
+- Enum-колонки хранить как string, не как PostgreSQL enum type (проще менять)

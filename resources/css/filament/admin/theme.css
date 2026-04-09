@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*.php';
+@source '../../../../vendor/filament/**/*.blade.php';
+
+:root.dark {
+    --color-gray-50: oklch(0.16 0.02 280);   /* #1a1a24 */
+    --color-gray-100: oklch(0.19 0.02 280);  /* #22222e */
+    --color-gray-200: oklch(0.23 0.015 280); /* #2a2a3a */
+    --color-gray-300: oklch(0.28 0.015 280); /* #3a3a4a */
+    --color-gray-400: oklch(0.50 0.02 250);  /* #64748b */
+    --color-gray-500: oklch(0.58 0.02 250);  /* #94a3b8 (text secondary) */
+    --color-gray-600: oklch(0.70 0.02 250);
+    --color-gray-700: oklch(0.80 0.015 250);
+    --color-gray-800: oklch(0.87 0.01 250);  /* #e2e8f0 (text primary) */
+    --color-gray-900: oklch(0.93 0.005 250);
+    --color-gray-950: oklch(0.97 0.002 250);
+}
+
+.fi-body {
+    background-color: #0e0e12 !important;
+}
+
+.dark .fi-sidebar {
+    background-color: #12121a !important;
+    border-color: #2a2a3a !important;
+}
+
+.dark .fi-topbar {
+    background-color: #12121a !important;
+    border-color: #2a2a3a !important;
+}
+
+.dark .fi-section,
+.dark .fi-ta-ctn,
+.dark .fi-wi-stats-overview-stat {
+    background-color: #1a1a24 !important;
+    border-color: #2a2a3a !important;
+}
+
+.dark .fi-simple-page {
+    background-color: #0e0e12 !important;
+}
+
+.dark .fi-simple-main-ctn {
+    background-color: #1a1a24 !important;
+    border: 1px solid #2a2a3a !important;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .fi-input-wrp {
+    background-color: #16161e !important;
+    border-color: #2a2a3a !important;
+}
+
+.dark .fi-input-wrp:focus-within {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 0 1px #f59e0b !important;
+}
+
+.dark .fi-btn-color-primary {
+    --c-400: oklch(0.82 0.17 85);
+    --c-500: oklch(0.75 0.18 85);
+    --c-600: oklch(0.68 0.18 85);
+}
+
+.dark .fi-sidebar-item-button.fi-active {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.dark .fi-dropdown-list {
+    background-color: #252530 !important;
+    border-color: #2a2a3a !important;
+}
+
+.dark .fi-modal-window {
+    background-color: #1a1a24 !important;
+    border-color: #2a2a3a !important;
+}
+
+.dark .fi-ta-row:hover {
+    background-color: #22222e !important;
+}

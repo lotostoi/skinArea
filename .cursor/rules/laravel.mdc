@@ -1,0 +1,130 @@
+---
+description: Правила написания Laravel-кода в проекте SkinsArena
+alwaysApply: true
+---
+
+# Правила Laravel
+
+## Общие
+
+- PHP 8.4. Использовать: typed properties, enums, match, named arguments, readonly где уместно
+- Строгая типизация: `declare(strict_types=1);` в каждом файле
+- Все классы импортировать через `use`. НИКОГДА не использовать FQCN в коде
+- Не добавлять очевидные комментарии
+
+## Контроллеры
+
+- Тонкие контроллеры — только валидация, вызов Action/Service, возврат Resource
+- Один контроллер = один ресурс. Метод = одно действие
+- Валидация — через Form Request классы, НЕ в контроллере
+- Ответы API — через API Resource классы, НЕ голые массивы/модели
+
+```php
+// Правильно
+public function store(PurchaseItemRequest $request, PurchaseItem $action): JsonResponse
+{
+    $deal = $action->execute($request->validated());
+    return response()->json(new DealResource($deal), 201);
+}
+
+// Неправильно
+public function store(Request $request)
+{
+    $validated = $request->validate([...]); // валидация в контроллере
+    // 50 строк бизнес-логики
+    return response()->json($deal); // голая модель
+}
+```
+
+## Actions (бизнес-действия)
+
+- Один Action = одно бизнес-действие (OpenCase, PurchaseItem, CreateTrade, DepositBalance)
+- Метод `execute()` — единственный публичный метод
+- Action содержит бизнес-логику, которая не помещается в одну строку сервиса
+- Action может вызывать сервисы
+
+## Services
+
+- Сервисы — для переиспользуемой логики (BalanceService, SteamService, CaseService)
+- Регистрируются в ServiceProvider, инжектятся через конструктор
+- НЕ используют Request, НЕ возвращают Response — работают с данными
+
+## Модели
+
+- Каждая модель в отдельном файле
+- Обязательно: `$fillable` или `$guarded`, `$casts`, relations
+- Scopes для частых запросов (`scopeActive`, `scopeForUser`)
+- НЕ класть бизнес-логику в модели — только relations, scopes, accessors, casts
+
+## Enums
+
+- Использовать PHP 8.1 Enums для всех статусов и типов
+- Хранить в `app/Enums/`
+- В БД хранить как string (не int) — читаемость важнее
+
+```php
+enum DealStatus: string
+{
+    case Created = 'created';
+    case Paid = 'paid';
+    case TradeSent = 'trade_sent';
+    case TradeAccepted = 'trade_accepted';
+    case Completed = 'completed';
+    case Cancelled = 'cancelled';
+}
+```
+
+## Финансовые операции
+
+ОБЯЗАТЕЛЬНО для любой операции с деньгами:
+
+```php
+DB::transaction(function () use ($user, $amount) {
+    $balance = Balance::where('user_id', $user->id)
+        ->lockForUpdate()
+        ->first();
+
+    if ($balance->amount < $amount) {
+        throw new InsufficientBalanceException();
+    }
+
+    $balance->decrement('amount', $amount);
+
+    Transaction::create([
+        'user_id' => $user->id,
+        'type' => TransactionType::Purchase,
+        'amount' => -$amount,
+        'balance_after' => $balance->fresh()->amount,
+    ]);
+});
+```
+
+- `lockForUpdate()` — ВСЕГДА при чтении баланса перед изменением
+- `Transaction` — ВСЕГДА создавать при изменении баланса
+- Никогда не менять баланс напрямую без транзакции
+
+## Очереди (Jobs)
+
+- Все фоновые задачи — через Laravel Queue + Redis
+- Jobs для: проверки статуса трейда, таймаутов сделок, обновления цен
+- Delayed jobs для таймаутов: `CheckTradeTimeout::dispatch($deal)->delay(now()->addMinutes(15))`
+- Jobs должны быть идемпотентными (безопасно повторять)
+
+## Конфигурация
+
+- Все настраиваемые значения — в `config/skinsarena.php`
+- Комиссии, таймауты, лимиты — НИКОГДА не хардкодить
+- В коде: `config('skinsarena.marketplace.commission')`
+
+## Тесты
+
+- Feature-тесты для API-эндпоинтов
+- Unit-тесты для Actions и Services
+- Финансовые операции — тестировать race conditions через `DB::transaction` + параллельные запросы
+- Использовать Factories для генерации тестовых данных
+
+## Маршруты
+
+- API-маршруты в `routes/api.php` с версионированием: `/api/v1/...`
+- Группировка по middleware: `auth:sanctum`, `admin`
+- Resource-контроллеры где возможно
