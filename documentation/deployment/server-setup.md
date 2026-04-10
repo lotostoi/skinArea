@@ -28,6 +28,8 @@
 
 Без **`DEPLOY_PATH`** workflow не узнает, куда `cd` на сервере.
 
+Перед `git reset` деплой выполняет **`sudo chown -R $(whoami):$(whoami) .`**, чтобы снять владение **`www-data`** с `storage`/`bootstrap/cache` после Docker и не ловить `unable to unlink … Permission denied`. Пользователь из **`SSH_USER`** должен иметь **passwordless sudo** для `chown` по этому каталогу (или глобально для деплоя), иначе шаг упадёт.
+
 ---
 
 ## Что сделать на VPS (один раз)
@@ -76,6 +78,17 @@
    docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan route:cache
    docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan view:cache
    ```
+
+   Если Docker у тебя только через **`sudo`**, добавь **`sudo`** перед каждым `docker compose` и `docker run` в блоке выше. Готовый фрагмент — поднять стек и пересобрать кеши:
+
+   ```bash
+   sudo docker compose -f docker-compose.prod.yml up -d --build
+   sudo docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache
+   sudo docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan config:cache
+   sudo docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan route:cache
+   sudo docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan view:cache
+   ```
+
    Проверка: снаружи `http://IP:8080` (открой порт в UFW: `sudo ufw allow 8080/tcp`). С сервера: `curl -I http://127.0.0.1:8080`.
 
 8. **HTTPS и домен:** когда подключишь Caddy на **80/443**, в `docker-compose.prod.yml` у nginx поставь **`127.0.0.1:8080:80`**, в `Caddyfile`: `reverse_proxy 127.0.0.1:8080`, закрой публичный **8080** в UFW. Сайт снаружи: `https://ваш-домен`.
@@ -277,6 +290,7 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
+            sudo chown -R "$(whoami):$(whoami)" .
             BRANCH="${{ github.ref_name }}"
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"

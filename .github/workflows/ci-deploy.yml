@@ -54,6 +54,7 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
+            sudo chown -R "$(whoami):$(whoami)" .
             BRANCH="${{ github.ref_name }}"
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
