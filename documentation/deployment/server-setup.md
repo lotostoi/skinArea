@@ -8,8 +8,8 @@
 
 | Файл | Назначение |
 |------|------------|
-| `docker-compose.prod.yml` | Прод: nginx на **127.0.0.1:8080** (80/443 снаружи — Caddy), без Vite, Postgres/Redis без проброса наружу |
-| `.github/workflows/ci-deploy.yml` | PR/push в `main`: тесты; после **push** в `main` — SSH на VPS и скрипт деплоя |
+| `docker-compose.prod.yml` | Прод: nginx **публично :8080** (`http://IP:8080`). Для Caddy на 80/443 — в compose заменить на `127.0.0.1:8080:80`, без Vite, Postgres/Redis без проброса наружу |
+| `.github/workflows/ci-deploy.yml` | PR/push в `main` или `master`: тесты; после **push** в эту ветку — SSH на VPS и скрипт деплоя |
 
 Локальная разработка по-прежнему: **`docker compose`** + `docker-compose.yml` (порт **8080**, Vite **5173**) — **не заменяется**.
 
@@ -57,7 +57,7 @@
    - `APP_ENV=production`
    - `APP_DEBUG=false`
    - `APP_KEY=` — сгенерировать один раз (локально или в контейнере): `php artisan key:generate`
-   - `APP_URL=https://ваш-домен` (или `http://IP` для теста)
+   - `APP_URL=https://ваш-домен` (или `http://IP:8080`, пока нет домена/Caddy)
    - `DB_*` совпадают с тем, что ожидает `docker-compose.prod.yml` (`DB_PASSWORD` задаёт пароль Postgres в контейнере)
    - `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` — под твой домен/схему SPA
    - `STEAM_*`, `ADMIN_*` — по необходимости
@@ -73,18 +73,20 @@
    docker compose -f docker-compose.prod.yml exec -T app php artisan storage:link || true
    docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
    ```
-   Проверка с сервера: `curl -I http://127.0.0.1:8080` (nginx **не** слушает публичный 80 — только localhost).
+   Проверка: снаружи `http://IP:8080` (открой порт в UFW: `sudo ufw allow 8080/tcp`). С сервера: `curl -I http://127.0.0.1:8080`.
 
-8. **HTTPS и домен:** Caddy на хосте слушает **80/443**, в `Caddyfile`: `reverse_proxy 127.0.0.1:8080`. Сайт снаружи: `https://ваш-домен`. Без Caddy с этим compose публично по IP:80 приложение **не** откроется — только через прокси или временно верни `80:80` для отладки.
+8. **HTTPS и домен:** когда подключишь Caddy на **80/443**, в `docker-compose.prod.yml` у nginx поставь **`127.0.0.1:8080:80`**, в `Caddyfile`: `reverse_proxy 127.0.0.1:8080`, закрой публичный **8080** в UFW. Сайт снаружи: `https://ваш-домен`.
 
 **Composer на самой Ubuntu не обязателен** — зависимости ставятся **внутри контейнера** `app`.
 
+**Docker Hub 429 / `sudo docker`:** `docker login` под пользователем пишет `~/.docker/config.json`, а **`sudo docker`** ходит в Hub **от root** и смотрит `/root/.docker/` — логина там нет → снова анонимный лимит. Либо **`sudo docker login`**, либо `sudo usermod -aG docker ВАШ_USER`, перелогин в SSH и **`docker compose` без sudo**. Образ `composer:2` в Dockerfile не используется — Composer ставится установщиком с getcomposer.org, остаётся тянуть в основном `php:8.4-fpm-bookworm`.
+
 ---
 
-## Что происходит при push в `main`
+## Что происходит при push в `main` или `master`
 
 1. GitHub Actions: `composer install`, `npm ci`, `npm run build`, `php artisan test`.
-2. Если тесты зелёные — SSH на VPS, в `DEPLOY_PATH`: `git reset --hard origin/main`, `composer install --no-dev`, сборка фронта через контейнер `node`, `docker compose -f docker-compose.prod.yml up -d --build`, миграции, кеши.
+2. Если тесты зелёные — SSH на VPS, в `DEPLOY_PATH`: `git fetch` и `git reset --hard` на ту же ветку, что запушена, затем `composer install --no-dev`, сборка фронта через контейнер `node`, `docker compose -f docker-compose.prod.yml up -d --build`, миграции, кеши.
 
 ---
 
@@ -99,7 +101,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - "127.0.0.1:8080:80"
+      - "8080:80"
     volumes:
       - .:/var/www/html:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -218,9 +220,9 @@ name: CI and deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -256,7 +258,7 @@ jobs:
 
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/ssh-action@v1.2.0
@@ -268,8 +270,9 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
-            git fetch origin main
-            git reset --hard origin/main
+            BRANCH="${{ github.ref_name }}"
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
             docker compose -f docker-compose.prod.yml run --rm --no-deps app composer install --no-dev --no-interaction --optimize-autoloader
             docker run --rm -v "$(pwd)":/var/www/html -w /var/www/html node:22-alpine sh -c "npm ci && npm run build"
             docker compose -f docker-compose.prod.yml up -d --build
@@ -284,7 +287,7 @@ jobs:
 
 ## Чеклист после добавления файлов
 
-- [ ] Закоммитить и запушить в GitHub ветку **`main`** (workflow смотрит на `main`).
+- [ ] Закоммитить и запушить в GitHub ветку **`main`** или **`master`** (workflow смотрит на обе).
 - [ ] Секрет **`DEPLOY_PATH`** совпадает с реальным путём к клону на сервере.
 - [ ] На сервере в этом каталоге есть **`.env`** и уже был успешный ручной `up` (см. выше).
 - [ ] У пользователя SSH на сервере есть право выполнять `docker` (группа `docker`) и писать в каталог клона.
