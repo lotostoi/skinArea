@@ -68,10 +68,13 @@
    docker compose -f docker-compose.prod.yml run --rm --no-deps app composer install --no-dev --no-interaction --optimize-autoloader
    docker run --rm -v "$(pwd)":/var/www/html -w /var/www/html node:22-alpine sh -c "npm ci && npm run build"
    docker compose -f docker-compose.prod.yml up -d --build
-   docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
-   docker compose -f docker-compose.prod.yml exec -T app php artisan db:seed --class=AdminUserSeeder
+   docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache
+   docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan migrate --force
+   docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan db:seed --class=AdminUserSeeder
    docker compose -f docker-compose.prod.yml exec -T app php artisan storage:link || true
-   docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
+   docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan config:cache
+   docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan route:cache
+   docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan view:cache
    ```
    Проверка: снаружи `http://IP:8080` (открой порт в UFW: `sudo ufw allow 8080/tcp`). С сервера: `curl -I http://127.0.0.1:8080`.
 
@@ -81,12 +84,14 @@
 
 **Docker Hub 429 / `sudo docker`:** `docker login` под пользователем пишет `~/.docker/config.json`, а **`sudo docker`** ходит в Hub **от root** и смотрит `/root/.docker/` — логина там нет → снова анонимный лимит. Либо **`sudo docker login`**, либо `sudo usermod -aG docker ВАШ_USER`, перелогин в SSH и **`docker compose` без sudo**. Образ `composer:2` в Dockerfile не используется — Composer ставится установщиком с getcomposer.org, остаётся тянуть в основном `php:8.4-fpm-bookworm`.
 
+**HTTP 500, `tempnam(): file created in the system's temporary directory` (PHP 8.4):** PHP-FPM в контейнере работает от **`www-data`**. Если `php artisan config:cache`, `view:cache` и т.п. запускали от **root**, файлы в `storage/framework/views` и `bootstrap/cache` оказываются с владельцем root — FPM не может писать, `tempnam()` откатывается в системный каталог и даёт исключение. Исправление: `docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache`, затем пересобрать кеши от **`www-data`**: `exec -u www-data -T app php artisan config:cache` (и `route:cache`, `view:cache`). В CI это уже заложено в workflow.
+
 ---
 
 ## Что происходит при push в `main` или `master`
 
 1. GitHub Actions: `composer install`, `npm ci`, `npm run build`, `php artisan test`.
-2. Если тесты зелёные — SSH на VPS, в `DEPLOY_PATH`: `git fetch` и `git reset --hard` на ту же ветку, что запушена, затем `composer install --no-dev`, сборка фронта через контейнер `node`, `docker compose -f docker-compose.prod.yml up -d --build`, миграции, кеши.
+2. Если тесты зелёные — SSH на VPS, в `DEPLOY_PATH`: `git fetch` и `git reset --hard` на ту же ветку, что запушена, затем `composer install --no-dev`, сборка фронта через контейнер `node`, `docker compose -f docker-compose.prod.yml up -d --build`, `chown` на `storage` и `bootstrap/cache` для `www-data`, миграции и кеши artisan от `www-data` (см. workflow).
 
 ---
 
@@ -135,6 +140,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    user: www-data
     command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
     volumes:
       - .:/var/www/html
@@ -158,6 +164,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    user: www-data
     command: php artisan schedule:work
     volumes:
       - .:/var/www/html
@@ -276,11 +283,12 @@ jobs:
             docker compose -f docker-compose.prod.yml run --rm --no-deps app composer install --no-dev --no-interaction --optimize-autoloader
             docker run --rm -v "$(pwd)":/var/www/html -w /var/www/html node:22-alpine sh -c "npm ci && npm run build"
             docker compose -f docker-compose.prod.yml up -d --build
-            docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+            docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan migrate --force
             docker compose -f docker-compose.prod.yml exec -T app php artisan storage:link || true
-            docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
-            docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache
-            docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan config:cache
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan route:cache
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan view:cache
 ```
 
 ---

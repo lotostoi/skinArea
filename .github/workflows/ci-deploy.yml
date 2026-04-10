@@ -58,8 +58,9 @@ jobs:
             docker compose -f docker-compose.prod.yml run --rm --no-deps app composer install --no-dev --no-interaction --optimize-autoloader
             docker run --rm -v "$(pwd)":/var/www/html -w /var/www/html node:22-alpine sh -c "npm ci && npm run build"
             docker compose -f docker-compose.prod.yml up -d --build
-            docker compose -f docker-compose.prod.yml exec -T app php artisan migrate --force
+            docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan migrate --force
             docker compose -f docker-compose.prod.yml exec -T app php artisan storage:link || true
-            docker compose -f docker-compose.prod.yml exec -T app php artisan config:cache
-            docker compose -f docker-compose.prod.yml exec -T app php artisan route:cache
-            docker compose -f docker-compose.prod.yml exec -T app php artisan view:cache
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan config:cache
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan route:cache
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan view:cache
