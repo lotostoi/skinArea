@@ -1,0 +1,118 @@
+# Продакшен: тот же стек, что локально, но без Vite dev, без наружу Postgres/Redis.
+# Запуск на сервере: см. documentation/deployment/server-setup.md
+#
+# Локально по-прежнему: docker compose up (docker-compose.yml) — с node :5173.
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    # Только localhost: внешние 80/443 — Caddy (reverse_proxy → 127.0.0.1:8080)
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - skinsarena
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - skinsarena
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - skinsarena
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    command: php artisan schedule:work
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      app:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - skinsarena
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-skinsarena}
+      POSTGRES_USER: ${DB_USERNAME:-skinsarena}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-skinsarena} -d ${DB_DATABASE:-skinsarena}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - skinsarena
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - skinsarena
+
+networks:
+  skinsarena:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
