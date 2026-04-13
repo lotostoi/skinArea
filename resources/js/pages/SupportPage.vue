@@ -125,6 +125,7 @@ onMounted(() => {
         <div class="border-t border-border pt-4 flex-1 min-h-0 flex flex-col">
           <h2 class="text-sm font-semibold text-text-secondary mb-2">Мои обращения</h2>
           <div v-if="loadingList" class="text-text-muted text-sm py-4">Загрузка…</div>
+          <p v-else-if="tickets.length === 0" class="text-text-muted text-sm py-2">Пока нет обращений.</p>
           <ul v-else class="space-y-1 overflow-y-auto max-h-64 lg:max-h-[320px]">
             <li v-for="t in tickets" :key="t.id">
               <button
@@ -142,9 +143,6 @@ onMounted(() => {
               </button>
             </li>
           </ul>
-          <p v-if="!loadingList && tickets.length === 0" class="text-text-muted text-sm py-2">
-            Пока нет обращений.
-          </p>
         </div>
       </div>
 

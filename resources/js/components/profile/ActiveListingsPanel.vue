@@ -59,7 +59,13 @@ defineExpose({ reload: load })
       <h3 class="text-lg font-semibold text-text-primary">Активные продажи</h3>
       <AppButton variant="secondary" size="sm" :loading="loading" @click="load">Обновить</AppButton>
     </div>
-    <p v-if="!loading && items.length === 0" class="text-text-secondary text-sm">Нет активных лотов.</p>
+    <div
+      v-if="loading"
+      class="rounded-lg border border-border bg-input/40 py-10 text-center text-sm text-text-muted"
+    >
+      Загрузка…
+    </div>
+    <p v-else-if="items.length === 0" class="text-text-secondary text-sm">Нет активных лотов.</p>
     <ul v-else class="space-y-3">
       <li
         v-for="it in items"

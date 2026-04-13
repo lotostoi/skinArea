@@ -73,7 +73,7 @@
 | Файл | Заметка |
 |------|---------|
 | `MarketPage.vue` | Одна загрузка в `onMounted` — страница публичная, ок. |
-| `SupportPage.vue` | Список в `onMounted` — маршрут под `requiresAuth`, `user` уже есть к монту. |
+| `SupportPage.vue` | Список в `onMounted` — маршрут под `requiresAuth`, `user` уже есть к монту. Список тикетов: `loadingList` → пустой текст → `ul` (без пустого `ul` при 0 записей). |
 | `HomePage.vue` | Статика/моки, без API в монте. |
 | `AuthSteamCompletePage.vue` | Обмен кода → запись `user` в store, ок. |
 | `ListForSaleModal.vue` | `watch` на `open` сбрасывает форму — ок. |
@@ -87,7 +87,7 @@
 
 Ошибка: при `loading === true` условие вида `v-else-if="!loading && items.length === 0"` ложно, срабатывает **`v-else`** (например, сетка под `v-for` по пустому массиву) — пользователь видит **пустой блок без спиннера**, хотя запрос ещё идёт. После F5 ответ часто быстрее → кажется, что «помогла только перезагрузка».
 
-**Правило:** явная ветка **`v-if="loading"`** (или skeleton) **перед** ветками ошибки и пустого списка. Пример исправления: `SteamInventoryPanel.vue`.
+**Правило:** явная ветка **`v-if="loading"`** (или skeleton) **перед** ветками ошибки и пустого списка. Тот же порядок: `ActiveListingsPanel.vue`, `ProfileSoldPanel.vue`, `SteamInventoryPanel.vue`; в списках поддержки — `SupportPage.vue` (сначала загрузка, затем пусто, затем список).
 
 ---
 
