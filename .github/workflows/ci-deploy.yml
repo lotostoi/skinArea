@@ -68,6 +68,8 @@ jobs:
             docker compose -f docker-compose.prod.yml restart nginx
             docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache
             docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan migrate --force
+            # Админ Filament: updateOrCreate по ADMIN_STEAM_ID; email/пароль берутся из .env (источник правды после деплоя).
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan db:seed --class=AdminUserSeeder --force
             docker compose -f docker-compose.prod.yml exec -T app php artisan storage:link || true
             docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan config:cache
             docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan route:cache

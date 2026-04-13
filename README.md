@@ -73,7 +73,7 @@ docker compose up -d
 | `ADMIN_PASSWORD` | Пароль (в проде обязательно сменить). |
 | `ADMIN_STEAM_ID` | SteamID64, уникальный среди пользователей (по умолчанию тестовый). |
 
-После `make migrate` (или `php artisan migrate`) выполните `php artisan db:seed` — создаётся/обновляется админ из `ADMIN_*`. Обычные пользователи после входа через Steam получают роль `user`; роль `admin` только вручную/через сидер.
+После `make migrate` (или `php artisan migrate`) выполните `php artisan db:seed --class=AdminUserSeeder` — создаётся/обновляется админ из `ADMIN_*`. На проде при деплое через GitHub Actions тот же сидер вызывается автоматически после миграций: **логин и пароль в `/admin` совпадают с `ADMIN_EMAIL` / `ADMIN_PASSWORD` в `.env` на сервере** (не «обнуляется» вся БД). Обычные пользователи после входа через Steam получают роль `user`; роль `admin` только вручную/через сидер.
 
 ### Поток Steam → SPA (Sanctum token)
 

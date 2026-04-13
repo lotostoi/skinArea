@@ -30,6 +30,12 @@
 
 Перед `git reset` деплой выполняет **`sudo chown -R $(whoami):$(whoami) .`**, чтобы снять владение **`www-data`** с `storage`/`bootstrap/cache` после Docker и не ловить `unable to unlink … Permission denied`. Пользователь из **`SSH_USER`** должен иметь **passwordless sudo** для `chown` по этому каталогу (или глобально для деплоя), иначе шаг упадёт.
 
+### Filament (`/admin`): почему «неверный логин» и что делает деплой
+
+- **`php artisan migrate --force` не очищает таблицы** и не «генерит данные заново» — только накатывает новые миграции. Пользователи и прочие строки остаются, пока ты сам не делаешь `migrate:fresh` / `db:wipe` / `docker compose down -v` с удалением тома Postgres.
+- Вход в админку — это **email + пароль из таблицы `users`**, а не «любой» адрес. Если в БД до сих пор `admin@skinsarena.local` из примера, а ты вводишь `admin@mail.ru`, получишь ту же ошибку, что и при неверном пароле.
+- На сервере в **`.env`** задай **`ADMIN_EMAIL`**, **`ADMIN_PASSWORD`**, **`ADMIN_STEAM_ID`** (см. `config/skinsarena.php`). После деплоя CI выполняет **`php artisan db:seed --class=AdminUserSeeder --force`**: для строки с этим `steam_id` подтягиваются email и пароль из `.env` (идемпотентно). **Пароль, изменённый только в интерфейсе Filament без правки `.env`, при следующем деплое снова заменится значением из `.env`.**
+
 ---
 
 ## Что сделать на VPS (один раз)
@@ -305,6 +311,7 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache
             docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan migrate --force
+            docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan db:seed --class=AdminUserSeeder --force
             docker compose -f docker-compose.prod.yml exec -T app php artisan storage:link || true
             docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan config:cache
             docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan route:cache
