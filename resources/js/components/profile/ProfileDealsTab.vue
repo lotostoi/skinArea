@@ -66,7 +66,7 @@ onMounted(() => {
 watch(
   () => props.active,
   (v: boolean) => {
-    if (v && items.value.length === 0 && !loading.value) {
+    if (v) {
       void load()
     }
   },
