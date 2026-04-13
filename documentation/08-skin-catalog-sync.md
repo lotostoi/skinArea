@@ -71,6 +71,6 @@ Laravel `Schedule::command('skins:catalog-sync')->dailyAt('04:15')` в `routes/c
 
 Feature-тест: `Http::fake` с укороченным JSON, `artisan skins:catalog-sync --limit=2`, проверка количества строк в БД.
 
-## Связь с MVP
+## Связь с ТЗ
 
-См. [05-mvp-roadmap.md](05-mvp-roadmap.md), раздел «Справочник предметов CS2». Витрина маркета по-прежнему наполняется лотами; для демо пустой витрины допускаются сидер или ручное создание лотов в Filament.
+Требования к справочнику предметов / админке кейсов — в [00-technical-specification.md](00-technical-specification.md) (и в актуальном [00-technical-specification.docx](00-technical-specification.docx)); ищи по тексту разделы про лутбоксы, скины, админ-панель. Витрина маркета наполняется лотами пользователей; для пустой витрины — сидер или ручное создание лотов в Filament.

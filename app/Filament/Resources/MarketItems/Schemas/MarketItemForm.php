@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\MarketItems\Schemas;
 
 use App\Enums\ItemCategory;
@@ -18,30 +20,42 @@ class MarketItemForm
         return $schema
             ->components([
                 Select::make('seller_id')
-                    ->relationship('seller', 'id')
-                    ->required(),
+                    ->label('Продавец')
+                    ->relationship('seller', 'username')
+                    ->required()
+                    ->searchable()
+                    ->preload(),
                 TextInput::make('asset_id')
+                    ->label('Asset ID (Steam)')
                     ->required(),
                 TextInput::make('name')
+                    ->label('Название')
                     ->required(),
                 FileUpload::make('image_url')
+                    ->label('Изображение')
                     ->image(),
                 Select::make('wear')
+                    ->label('Износ')
                     ->options(ItemWear::class)
                     ->required(),
                 TextInput::make('float_value')
+                    ->label('Float')
                     ->numeric(),
                 Select::make('rarity')
+                    ->label('Редкость')
                     ->options(ItemRarity::class)
                     ->required(),
                 Select::make('category')
+                    ->label('Категория')
                     ->options(ItemCategory::class)
                     ->required(),
                 TextInput::make('price')
+                    ->label('Цена, ₽')
                     ->required()
                     ->numeric()
-                    ->prefix('$'),
+                    ->suffix('₽'),
                 Select::make('status')
+                    ->label('Статус')
                     ->options(MarketItemStatus::class)
                     ->default('active')
                     ->required(),

@@ -25,6 +25,8 @@ class BalanceResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Финансы';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $modelLabel = 'баланс';
 
     protected static ?string $pluralModelLabel = 'Балансы';

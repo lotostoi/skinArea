@@ -108,8 +108,8 @@ SkinsArena/
 
 ## Документация
 
-- `documentation/00-technical-specification.docx` — стартовое ТЗ
+- `documentation/00-technical-specification.docx` — ТЗ (канонический документ Word)
+- `documentation/00-technical-specification.md` — тот же текст, извлечённый для поиска и агентов; при расхождении верен `.docx`
 - `documentation/01-glossary.md` — глоссарий терминов
 - `documentation/02-questions.md` — открытые вопросы по ТЗ
 - `documentation/03-stack-comparison.md` — сравнение стеков
-- `documentation/04-mvp-plan.md` — MVP-план: что строить, что выкинуть

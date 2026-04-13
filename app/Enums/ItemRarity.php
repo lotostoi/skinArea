@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-enum ItemRarity: string
+use Filament\Support\Contracts\HasLabel;
+
+enum ItemRarity: string implements HasLabel
 {
     case ConsumerGrade = 'consumer_grade';
     case IndustrialGrade = 'industrial_grade';
@@ -13,4 +15,17 @@ enum ItemRarity: string
     case Classified = 'classified';
     case Covert = 'covert';
     case Contraband = 'contraband';
+
+    public function getLabel(): ?string
+    {
+        return match ($this) {
+            self::ConsumerGrade => 'Ширпотреб',
+            self::IndustrialGrade => 'Промышленное',
+            self::MilSpec => 'Армейское',
+            self::Restricted => 'Запрещённое',
+            self::Classified => 'Засекречённое',
+            self::Covert => 'Тайное',
+            self::Contraband => 'Контрабанда',
+        };
+    }
 }

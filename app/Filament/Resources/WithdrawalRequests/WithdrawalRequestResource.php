@@ -25,6 +25,8 @@ class WithdrawalRequestResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Финансы';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $modelLabel = 'заявка на вывод';
 
     protected static ?string $pluralModelLabel = 'Заявки на вывод';
