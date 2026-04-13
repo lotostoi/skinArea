@@ -107,6 +107,13 @@ services:
     image: axllent/mailpit:latest
     command:
       - --webroot=/mailpit
+    # Встроенный HEALTHCHECK вызывает `/mailpit readyz` — с --webroot он падает; иначе контейнер «unhealthy».
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8025/mailpit/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     restart: unless-stopped
     networks:
       - skinsarena

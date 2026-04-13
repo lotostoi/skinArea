@@ -100,6 +100,8 @@
 
 **HTTP 500, `tempnam(): file created in the system's temporary directory` (PHP 8.4):** PHP-FPM в контейнере работает от **`www-data`**. Если `php artisan config:cache`, `view:cache` и т.п. запускали от **root**, файлы в `storage/framework/views` и `bootstrap/cache` оказываются с владельцем root — FPM не может писать, `tempnam()` откатывается в системный каталог и даёт исключение. Исправление: `docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache`, затем пересобрать кеши от **`www-data`**: `exec -u www-data -T app php artisan config:cache` (и `route:cache`, `view:cache`). В CI это уже заложено в workflow.
 
+**HTTP 502 Bad Gateway (страница от nginx):** для запросов к **`/`** и обычным страницам Laravel это не Mailpit — nginx не достучался до **PHP-FPM** (`app:9000`). В логах nginx часто: `connect() failed (111: Connection refused) ... upstream: "fastcgi://172.18.x.x:9000"` — контейнер **`nginx` не перезапускали**, а **`app` пересоздали** (деплой, `up --build`): у `app` сменился IP в сети Docker, nginx держит старый. **Сразу:** `docker compose -f docker-compose.prod.yml restart nginx`. В репозитории: `docker/nginx/default.conf` уже с **resolver + переменной** `fastcgi_pass`, чтобы IP обновлялся без ручного рестарта. Также проверь `docker compose ... logs app` (падение PHP, `.env`, БД, Redis, OOM).
+
 ---
 
 ## Что происходит при push в `main` или `master`

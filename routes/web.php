@@ -17,5 +17,5 @@ Route::get('email/verify/{id}/{hash}', VerifyEmailController::class)
     ->name('verification.verify');
 
 Route::get('/{any?}', fn () => view('spa'))
-    ->where('any', '^(?!api|admin|livewire).*$')
+    ->where('any', '^(?!api|admin|moderator|livewire).*$')
     ->name('spa');
