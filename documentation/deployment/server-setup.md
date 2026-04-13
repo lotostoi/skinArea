@@ -8,7 +8,7 @@
 
 | Файл | Назначение |
 |------|------------|
-| `docker-compose.prod.yml` | Прод: nginx **публично :8080** (`http://IP:8080`). Для Caddy на 80/443 — в compose заменить на `127.0.0.1:8080:80`, без Vite, Postgres/Redis без проброса наружу |
+| `docker-compose.prod.yml` | Прод: nginx **публично :8080** (`http://IP:8080`). Для Caddy на 80/443 — в compose заменить на `127.0.0.1:8080:80`, без Vite, Postgres/Redis без проброса наружу. **Mailpit:** SMTP только внутри Docker (`mailpit:1025`), веб-UI по пути **`/mailpit/`** на том же домене, что и сайт (прокси в `docker/nginx/default.conf`, порты Mailpit наружу не пробрасываются) |
 | `.github/workflows/ci-deploy.yml` | PR/push в `main` или `master`: тесты; после **push** в эту ветку — SSH на VPS и скрипт деплоя |
 
 Локальная разработка по-прежнему: **`docker compose`** + `docker-compose.yml` (порт **8080**, Vite **5173**) — **не заменяется**.
@@ -63,6 +63,7 @@
    - `DB_*` совпадают с тем, что ожидает `docker-compose.prod.yml` (`DB_PASSWORD` задаёт пароль Postgres в контейнере)
    - `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` — под твой домен/схему SPA
    - `STEAM_*`, `ADMIN_*` — по необходимости
+   - **Почта (Mailpit):** в `.env` должны быть `MAIL_MAILER=smtp`, `MAIL_HOST=mailpit`, `MAIL_PORT=1025` (как в `.env.example`). Иначе после `php artisan config:cache` приложение не увидит SMTP-хост из compose. Веб-интерфейс писем: **`https://ваш-домен/mailpit/`** (или `http://IP:8080/mailpit/`, пока нет HTTPS). Весь трафик идёт через nginx на **8080** / через Caddy на 443 — отдельный порт Mailpit на проде не нужен.
 
 7. **Первый запуск вручную** (проверка до CI):
    ```bash
@@ -91,7 +92,7 @@
 
    Проверка: снаружи `http://IP:8080` (открой порт в UFW: `sudo ufw allow 8080/tcp`). С сервера: `curl -I http://127.0.0.1:8080`.
 
-8. **HTTPS и домен:** когда подключишь Caddy на **80/443**, в `docker-compose.prod.yml` у nginx поставь **`127.0.0.1:8080:80`**, в `Caddyfile`: `reverse_proxy 127.0.0.1:8080`, закрой публичный **8080** в UFW. Сайт снаружи: `https://ваш-домен`.
+8. **HTTPS и домен:** когда подключишь Caddy на **80/443**, в `docker-compose.prod.yml` у nginx поставь **`127.0.0.1:8080:80`**, в `Caddyfile`: `reverse_proxy 127.0.0.1:8080`, закрой публичный **8080** в UFW. Сайт снаружи: `https://ваш-домен`. Mailpit откроется по **`https://ваш-домен/mailpit/`** на том же `reverse_proxy` (путь не выносить на отдельный upstream — иначе nginx не сможет проксировать в контейнер `mailpit`).
 
 **Composer на самой Ubuntu не обязателен** — зависимости ставятся **внутри контейнера** `app`.
 

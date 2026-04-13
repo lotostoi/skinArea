@@ -66,4 +66,13 @@ return [
         'http_proxy' => env('SKINSARENA_STEAM_INVENTORY_HTTP_PROXY'),
     ],
 
+    'steam_web_api' => [
+        'key' => env('STEAM_API_KEY', ''),
+        'http_timeout_seconds' => (int) env('SKINSARENA_STEAM_WEB_API_TIMEOUT', 10),
+        'trade_ban_check_enabled' => filter_var(
+            env('SKINSARENA_STEAM_TRADE_BAN_CHECK', true),
+            FILTER_VALIDATE_BOOLEAN,
+        ) && (string) env('STEAM_API_KEY', '') !== '',
+    ],
+
 ];

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import EmptyStateGraphic from '@/components/ui/EmptyStateGraphic.vue'
 import { fetchMarketItems } from '@/utils/market'
 import type { MarketItem } from '@/types/models'
 
@@ -65,7 +66,7 @@ onMounted(() => {
       v-else-if="items.length === 0"
       class="bg-surface border border-border rounded-xl p-12 text-center"
     >
-      <div class="text-5xl mb-4">🛒</div>
+      <EmptyStateGraphic variant="market" />
       <h2 class="text-xl font-semibold mb-2 text-text-primary">Пока нет лотов</h2>
       <p class="text-text-secondary text-sm">Выставьте скины в профиле — они появятся здесь.</p>
     </div>

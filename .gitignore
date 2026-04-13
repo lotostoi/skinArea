@@ -23,3 +23,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Локальные дампы/чужие папки, не часть репозитория
+/playstore/
+/cs-skins-extension 2/
+*.code-workspace

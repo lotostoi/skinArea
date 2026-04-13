@@ -25,6 +25,14 @@ class SteamInventoryController extends Controller
             abort(401);
         }
 
+        $tradeUrl = $user->trade_url !== null ? trim((string) $user->trade_url) : '';
+        if ($tradeUrl === '') {
+            return response()->json([
+                'message' => 'Укажите trade-ссылку Steam в разделе настроек маркета, чтобы просматривать инвентарь.',
+                'errors' => (object) [],
+            ], 422);
+        }
+
         try {
             $result = $this->steamInventory->fetchPageForSteamId($user->steam_id);
             $items = $result->items;

@@ -22,6 +22,7 @@ class AdminUserSeeder extends Seeder
             ['steam_id' => $steamId],
             [
                 'email' => $email,
+                'email_verified_at' => now(),
                 'username' => 'admin',
                 'avatar_url' => null,
                 'trade_url' => null,

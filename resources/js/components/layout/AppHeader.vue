@@ -1,15 +1,23 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBalanceStore } from '@/stores/balance'
 
 const auth = useAuthStore()
 const balance = useBalanceStore()
 
-const navItems = [
-  { to: '/market', label: 'Маркет' },
-  { to: '/cases', label: 'Кейсы' },
-  { to: '/upgrade', label: 'Апгрейд' },
-]
+const navItems = computed(() => {
+  const items = [{ to: '/market', label: 'Маркет' }]
+  if (!auth.isAuthenticated) {
+    return items
+  }
+  return [
+    ...items,
+    { to: '/cases', label: 'Кейсы' },
+    { to: '/upgrade', label: 'Апгрейд' },
+    { to: '/support', label: 'Поддержка' },
+  ]
+})
 </script>
 
 <template>

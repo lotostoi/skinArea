@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { fetchSteamInventory, type SteamInventoryItem } from '@/utils/market'
 
@@ -18,6 +18,16 @@ const inventoryGameLabel = ref('Counter-Strike 2')
 const onlyTradableFilter = ref(true)
 const steamRawAssets = ref<number | null>(null)
 const mappedItems = ref<number | null>(null)
+
+const steamPrivacySettingsUrl = 'https://steamcommunity.com/my/edit/settings'
+
+const showInventoryPrivacyHint = computed(() => {
+  if (!error.value) {
+    return false
+  }
+  const t = error.value.toLowerCase()
+  return t.includes('скрыт') || t.includes('публичн')
+})
 
 async function load() {
   if (!props.enabled) return
@@ -65,7 +75,20 @@ watch(
       <h3 class="text-lg font-semibold text-text-primary">Инвентарь Steam ({{ inventoryGameLabel }})</h3>
       <AppButton variant="secondary" size="sm" :loading="loading" @click="load">Обновить</AppButton>
     </div>
-    <p v-if="error" class="text-sm text-danger mb-4">{{ error }}</p>
+    <template v-if="error">
+      <p class="text-sm text-danger" :class="showInventoryPrivacyHint ? 'mb-2' : 'mb-4'">{{ error }}</p>
+      <p v-if="showInventoryPrivacyHint" class="text-sm text-text-secondary mb-4">
+        <a
+          :href="steamPrivacySettingsUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary hover:text-primary-hover underline font-medium"
+        >
+          Открыть настройки конфиденциальности Steam
+        </a>
+        — в разделе «Конфиденциальность» для «Инвентарь» выберите «Открытый» (Public).
+      </p>
+    </template>
     <p v-else-if="!loading && items.length === 0" class="text-text-secondary text-sm space-y-2">
       <span v-if="steamRawAssets !== null && steamRawAssets === 0">
         По ответу Steam предметов в этом инвентаре нет (0 строк). Проверьте

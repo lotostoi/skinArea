@@ -8,6 +8,7 @@ services:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app
+      - mailpit
     networks:
       - skinsarena
 
@@ -22,10 +23,15 @@ services:
     environment:
       DB_HOST: postgres
       REDIS_HOST: redis
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_started
+      mailpit:
         condition: service_started
     networks:
       - skinsarena
@@ -42,10 +48,15 @@ services:
     environment:
       DB_HOST: postgres
       REDIS_HOST: redis
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_started
+      mailpit:
         condition: service_started
       app:
         condition: service_started
@@ -65,14 +76,29 @@ services:
     environment:
       DB_HOST: postgres
       REDIS_HOST: redis
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
+      mailpit:
+        condition: service_started
       app:
         condition: service_started
     restart: unless-stopped
+    networks:
+      - skinsarena
+
+  mailpit:
+    image: axllent/mailpit:latest
+    command:
+      - --webroot=/mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
     networks:
       - skinsarena
 
@@ -94,12 +120,16 @@ services:
     networks:
       - skinsarena
 
+  # Локально: без RDB на томе — избегает MISCONF/stop-writes-on-bgsave-error (Docker Desktop, права, полный диск).
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
+    command: >
+      redis-server
+      --save ""
+      --appendonly no
+      --stop-writes-on-bgsave-error no
     networks:
       - skinsarena
 
@@ -127,4 +157,3 @@ networks:
 # (2) `make db-fresh` / `migrate:fresh` — том остаётся, но все таблицы и строки стираются.
 volumes:
   postgres_data:
-  redis_data:

@@ -1,23 +1,58 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useBalanceStore } from '@/stores/balance'
-import AppButton from '@/components/ui/AppButton.vue'
-import SteamInventoryPanel from '@/components/profile/SteamInventoryPanel.vue'
-import ActiveListingsPanel from '@/components/profile/ActiveListingsPanel.vue'
+import ProfileCabinetTopCard from '@/components/profile/ProfileCabinetTopCard.vue'
+import ProfileInventoryTab from '@/components/profile/ProfileInventoryTab.vue'
+import ProfileTransactionsTab from '@/components/profile/ProfileTransactionsTab.vue'
+import ProfileDealsTab from '@/components/profile/ProfileDealsTab.vue'
+import ProfileSettingsTab from '@/components/profile/ProfileSettingsTab.vue'
 import ListForSaleModal from '@/components/profile/ListForSaleModal.vue'
 import { createMarketListing } from '@/utils/market'
 import type { SteamInventoryItem } from '@/utils/market'
+import { showAppAlert } from '@/composables/appDialog'
+
+type CabinetTab = 'transactions' | 'inventory' | 'deals' | 'settings'
 
 const auth = useAuthStore()
-const balance = useBalanceStore()
+const route = useRoute()
+const router = useRouter()
+const activeTab = ref<CabinetTab>('inventory')
 
-const listingsRef = ref<InstanceType<typeof ActiveListingsPanel> | null>(null)
-const inventoryKey = ref(0)
+onMounted(async () => {
+  if (route.query.email_verified === '1') {
+    await auth.loadUser()
+    await router.replace({ path: route.path, query: {} })
+  }
+})
+
+const tabs: { id: CabinetTab; label: string }[] = [
+  { id: 'inventory', label: 'Мой инвентарь' },
+  { id: 'transactions', label: 'Транзакции' },
+  { id: 'deals', label: 'Мои сделки' },
+  { id: 'settings', label: 'Настройки' },
+]
+
+const inventoryTabRef = ref<InstanceType<typeof ProfileInventoryTab> | null>(null)
+const steamInventoryKey = ref(0)
 
 const modalOpen = ref(false)
 const modalItem = ref<SteamInventoryItem | null>(null)
 const listSubmitting = ref(false)
+
+const hasTradeUrl = computed(
+  () => !!auth.user?.trade_url && auth.user.trade_url.trim().length > 0,
+)
+
+const steamPrivacyUrl = computed(() => {
+  if (auth.user?.steam_trade_privacy_url) {
+    return auth.user.steam_trade_privacy_url
+  }
+  if (auth.user?.steam_id) {
+    return `https://steamcommunity.com/profiles/${encodeURIComponent(auth.user.steam_id)}/tradeoffers/privacy`
+  }
+  return 'https://steamcommunity.com/my/tradeoffers/privacy'
+})
 
 function onListItem(item: SteamInventoryItem) {
   modalItem.value = item
@@ -25,7 +60,9 @@ function onListItem(item: SteamInventoryItem) {
 }
 
 async function onModalSubmit(price: number) {
-  if (!modalItem.value) return
+  if (!modalItem.value) {
+    return
+  }
   listSubmitting.value = true
   try {
     await createMarketListing({
@@ -34,87 +71,72 @@ async function onModalSubmit(price: number) {
     })
     modalOpen.value = false
     modalItem.value = null
-    await listingsRef.value?.reload()
-    inventoryKey.value += 1
+    inventoryTabRef.value?.reloadAfterListing()
+    steamInventoryKey.value += 1
   } catch (e: unknown) {
     const ax = e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
     const msg = ax.response?.data?.message
-    window.alert(msg ?? 'Не удалось выставить лот')
+    const firstErr = ax.response?.data?.errors
+    const flat = firstErr ? Object.values(firstErr).flat()[0] : undefined
+    showAppAlert((typeof flat === 'string' ? flat : null) ?? msg ?? 'Не удалось выставить лот', {
+      variant: 'error',
+      title: 'Выставление на маркет',
+    })
   } finally {
     listSubmitting.value = false
   }
 }
 
 function onListingsChanged() {
-  inventoryKey.value += 1
+  steamInventoryKey.value += 1
 }
 </script>
 
 <template>
-  <div v-if="auth.user" class="space-y-6">
-    <h1 class="text-2xl font-bold">Профиль</h1>
+  <div v-if="auth.user" class="relative pb-10">
+    <nav class="mb-3 text-xs text-text-muted">
+      <router-link to="/" class="transition-colors hover:text-text-secondary">Главная</router-link>
+      <span class="mx-1.5 text-border">/</span>
+      <span class="text-text-secondary">Личный кабинет</span>
+    </nav>
 
-    <div class="bg-surface border border-border rounded-xl p-6">
-      <div class="flex items-center gap-6">
-        <img
-          v-if="auth.user.avatar_url"
-          :src="auth.user.avatar_url"
-          :alt="auth.user.username"
-          class="w-20 h-20 rounded-full border-2 border-border"
-        />
-        <div
-          v-else
-          class="w-20 h-20 rounded-full bg-secondary flex items-center justify-center text-2xl font-bold text-white"
-        >
-          {{ auth.user.username.charAt(0).toUpperCase() }}
-        </div>
-
-        <div>
-          <h2 class="text-xl font-semibold">{{ auth.user.username }}</h2>
-          <p class="text-text-muted text-sm mt-1">Steam ID: {{ auth.user.steam_id }}</p>
-        </div>
-      </div>
+    <div class="mb-8">
+      <ProfileCabinetTopCard />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-surface border border-border rounded-xl p-6">
-        <h3 class="text-sm font-medium text-text-secondary mb-2">Основной баланс</h3>
-        <p class="text-3xl font-bold text-primary">{{ balance.mainBalance }} ₽</p>
-      </div>
-
-      <div class="bg-surface border border-border rounded-xl p-6">
-        <h3 class="text-sm font-medium text-text-secondary mb-2">На удержании</h3>
-        <p class="text-3xl font-bold text-warning">{{ balance.holdBalance }} ₽</p>
-      </div>
+    <div class="mb-6 flex flex-wrap gap-1 border-b border-border">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        type="button"
+        class="relative px-4 py-3 text-sm font-medium transition-colors"
+        :class="
+          activeTab === tab.id
+            ? 'text-primary after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-primary'
+            : 'text-text-secondary hover:text-text-primary'
+        "
+        @click="activeTab = tab.id"
+      >
+        {{ tab.label }}
+      </button>
     </div>
 
-    <ActiveListingsPanel
-      ref="listingsRef"
-      :enabled="!!auth.user"
-      @changed="onListingsChanged"
-    />
+    <div class="min-h-[320px]">
+      <ProfileInventoryTab
+        ref="inventoryTabRef"
+        :enabled="activeTab === 'inventory'"
+        :has-trade-url="hasTradeUrl"
+        :steam-privacy-url="steamPrivacyUrl"
+        :steam-inventory-key="steamInventoryKey"
+        @list-item="onListItem"
+        @listings-changed="onListingsChanged"
+      />
 
-    <SteamInventoryPanel
-      :key="inventoryKey"
-      :enabled="!!auth.user"
-      @list-item="onListItem"
-    />
+      <ProfileTransactionsTab :active="activeTab === 'transactions'" />
 
-    <div class="bg-surface border border-border rounded-xl p-6">
-      <h3 class="text-lg font-semibold mb-4">Trade URL</h3>
-      <p class="text-text-secondary text-sm mb-3">
-        Ссылка для обмена нужна для получения и отправки предметов через Steam.
-      </p>
-      <div class="flex gap-3">
-        <input
-          type="text"
-          :value="auth.user.trade_url ?? ''"
-          placeholder="https://steamcommunity.com/tradeoffer/new/?partner=..."
-          readonly
-          class="flex-1 bg-input border border-border rounded-md px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-border-focus focus:outline-none transition-colors"
-        />
-        <AppButton>Сохранить</AppButton>
-      </div>
+      <ProfileDealsTab :active="activeTab === 'deals'" />
+
+      <ProfileSettingsTab :active="activeTab === 'settings'" />
     </div>
 
     <ListForSaleModal

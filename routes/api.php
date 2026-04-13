@@ -11,8 +11,12 @@ use App\Http\Controllers\Api\MarketItemController;
 use App\Http\Controllers\Api\ProfileCaseInventoryController;
 use App\Http\Controllers\Api\ProfileListingController;
 use App\Http\Controllers\Api\SteamInventoryController;
+use App\Http\Controllers\Api\SupportTicketController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UpgradeController;
+use App\Http\Controllers\Api\UserEmailController;
+use App\Http\Controllers\Api\UserEmailVerificationNotificationController;
+use App\Http\Controllers\Api\UserTradeUrlController;
 use App\Http\Controllers\SteamAuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,14 +26,20 @@ Route::prefix('v1')->group(function (): void {
     Route::get('market/items', [MarketItemController::class, 'index']);
     Route::get('market/items/{market_item}', [MarketItemController::class, 'show']);
 
-    Route::get('cases', [CaseController::class, 'index']);
-    Route::get('cases/{caseId}', [CaseController::class, 'show'])->whereNumber('caseId');
-    Route::get('upgrade/items', [UpgradeController::class, 'items']);
-
     Route::post('balance/deposit/callback', [BalanceController::class, 'depositCallback']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
+        Route::post('auth/logout', [SteamAuthController::class, 'logout']);
+
         Route::get('user', [CurrentUserController::class, 'show']);
+        Route::patch('user/trade-url', [UserTradeUrlController::class, 'update']);
+        Route::patch('user/email', [UserEmailController::class, 'update']);
+        Route::post('user/email/verification-notification', [UserEmailVerificationNotificationController::class, 'store'])
+            ->middleware('throttle:6,1');
+
+        Route::get('cases', [CaseController::class, 'index']);
+        Route::get('cases/{caseId}', [CaseController::class, 'show'])->whereNumber('caseId');
+        Route::get('upgrade/items', [UpgradeController::class, 'items']);
 
         Route::post('market/items', [MarketItemController::class, 'store']);
         Route::delete('market/items/{market_item}', [MarketItemController::class, 'destroy']);
@@ -58,5 +68,10 @@ Route::prefix('v1')->group(function (): void {
         Route::post('profile/case-inventory/{case_opening}/withdraw', [ProfileCaseInventoryController::class, 'withdraw']);
 
         Route::post('upgrade', [UpgradeController::class, 'store']);
+
+        Route::get('support/tickets', [SupportTicketController::class, 'index']);
+        Route::post('support/tickets', [SupportTicketController::class, 'store']);
+        Route::get('support/tickets/{support_ticket}', [SupportTicketController::class, 'show']);
+        Route::post('support/tickets/{support_ticket}/messages', [SupportTicketController::class, 'storeMessage']);
     });
 });

@@ -11,6 +11,7 @@ alwaysApply: true
 - TypeScript strict mode. Все пропсы, эмиты, рефы — типизированы
 - Tailwind CSS для стилизации. Кастомный CSS — только если Tailwind не справляется
 - Pinia для глобального состояния (auth, balance, cart, notifications)
+- Тексты в UI без эмодзи — см. `ui-copy.mdc`; пустые состояния — SVG (Heroicons), не символы Unicode
 
 ## Структура компонентов
 

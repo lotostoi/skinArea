@@ -16,6 +16,8 @@ class SteamInventoryAndMarketListingTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const VALID_TRADE_URL = 'https://steamcommunity.com/tradeoffer/new/?partner=12345&token=abc123def';
+
     /**
      * @return array<string, mixed>
      */
@@ -51,7 +53,10 @@ class SteamInventoryAndMarketListingTest extends TestCase
             'steamcommunity.com/*' => Http::response($this->sampleSteamPayload()),
         ]);
 
-        $user = User::factory()->create(['steam_id' => '76561198000000001']);
+        $user = User::factory()->create([
+            'steam_id' => '76561198000000001',
+            'trade_url' => self::VALID_TRADE_URL,
+        ]);
         Sanctum::actingAs($user);
 
         $response = $this->getJson('/api/v1/inventory/steam');
@@ -90,7 +95,10 @@ class SteamInventoryAndMarketListingTest extends TestCase
             'steamcommunity.com/*' => Http::response($payload),
         ]);
 
-        $user = User::factory()->create(['steam_id' => '76561198000000002']);
+        $user = User::factory()->create([
+            'steam_id' => '76561198000000002',
+            'trade_url' => self::VALID_TRADE_URL,
+        ]);
         Sanctum::actingAs($user);
 
         $this->getJson('/api/v1/inventory/steam')
@@ -110,7 +118,10 @@ class SteamInventoryAndMarketListingTest extends TestCase
             'steamcommunity.com/*' => Http::response($payload),
         ]);
 
-        $user = User::factory()->create(['steam_id' => '76561198000000001']);
+        $user = User::factory()->create([
+            'steam_id' => '76561198000000001',
+            'trade_url' => self::VALID_TRADE_URL,
+        ]);
         Sanctum::actingAs($user);
 
         $response = $this->getJson('/api/v1/inventory/steam');
@@ -128,7 +139,10 @@ class SteamInventoryAndMarketListingTest extends TestCase
             'steamcommunity.com/*' => Http::response($this->sampleSteamPayload()),
         ]);
 
-        $user = User::factory()->create(['steam_id' => '76561198000000001']);
+        $user = User::factory()->create([
+            'steam_id' => '76561198000000001',
+            'trade_url' => self::VALID_TRADE_URL,
+        ]);
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/v1/market/items', [
@@ -152,7 +166,10 @@ class SteamInventoryAndMarketListingTest extends TestCase
             'steamcommunity.com/*' => Http::response($this->sampleSteamPayload()),
         ]);
 
-        $user = User::factory()->create(['steam_id' => '76561198000000001']);
+        $user = User::factory()->create([
+            'steam_id' => '76561198000000001',
+            'trade_url' => self::VALID_TRADE_URL,
+        ]);
         Sanctum::actingAs($user);
 
         $this->postJson('/api/v1/market/items', [

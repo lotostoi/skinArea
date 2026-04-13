@@ -10,7 +10,7 @@ P2P-маркетплейс скинов CS2, кейсы, апгрейд. **Larav
 make build      # собрать образ PHP
 make install    # composer + npm (без поднятия всего стека)
 make migrate    # миграции PostgreSQL
-make up         # nginx :8080, postgres, redis, queue, scheduler, node (Vite :5173)
+make up         # nginx :8080, postgres, redis, mailpit, queue, scheduler, node (Vite :5173)
 ```
 
 Или одной командой (после первого `make build`):
@@ -24,6 +24,7 @@ make setup
 - **Vite (HMR):** http://localhost:5173 — для горячей перезагрузки; в Docker настроен **proxy** на nginx (`BACKEND_URL`), API с 5173 тоже работает. Без Docker при `npm run dev` по умолчанию прокси на `127.0.0.1:8080`.  
 - **PostgreSQL:** localhost:5432 (user `skinsarena`, db `skinsarena`, password `secret`)  
 - **Redis:** localhost:6379  
+- **Mailpit (перехват почты):** веб-интерфейс `http://localhost:8080/mailpit/` (через nginx; опционально напрямую `http://localhost:8025/mailpit/`). SMTP для Laravel внутри Docker: `mailpit:1025` (см. `.env.example`: `MAIL_HOST=mailpit`). С хоста без Docker для теста: `MAIL_HOST=127.0.0.1`, порт `1025`.
 
 Остановка: `make down`
 
@@ -33,7 +34,7 @@ make setup
 
 Я (или Cursor) **не стираем** базу сами. Обычно виновато одно из двух:
 
-1. **`docker compose down -v`** — флаг **`-v`** удаляет именованные тома (`postgres_data`, `redis_data`). После следующего `up` PostgreSQL поднимается **пустым**. Без `-v` данные в томе **сохраняются**.
+1. **`docker compose down -v`** — флаг **`-v`** удаляет именованные тома (в т.ч. **`postgres_data`**). После следующего `up` PostgreSQL поднимается **пустым**. Без `-v` данные в томе **сохраняются**. Локальный Redis в `docker-compose.yml` без тома (кэш/очередь не персистятся между пересозданиями контейнера).
 2. **`make db-fresh`** (раньше в Makefile называлось `fresh`) — внутри выполняется **`php artisan migrate:fresh`**: дропаются **все таблицы**, миграции накатываются заново. **Том не удаляется**, но **все строки в БД исчезают** (включая админа из сидера). После этого снова нужны миграции + сидер админа.
 
 **Безопасно для данных:** `make migrate` (только новые миграции), `make down` **без** `-v`, перезагрузка ПК/Docker Desktop.

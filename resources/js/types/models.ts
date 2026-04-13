@@ -6,6 +6,12 @@ export interface User {
   username: string
   avatar_url: string | null
   trade_url: string | null
+  /** Только у текущего пользователя в /user; у продавца в маркете не приходит */
+  email?: string | null
+  /** ISO8601 или null — только у текущего пользователя */
+  email_verified_at?: string | null
+  /** Ссылка на страницу Steam, где показывается и копируется trade URL */
+  steam_trade_privacy_url: string
   role: UserRole
   balances?: Balance[]
 }
@@ -33,15 +39,16 @@ export interface MarketItem {
 
 export interface Deal {
   id: number
-  buyer_id: number
-  seller_id: number
-  market_item_id: number
+  buyer_id?: number
+  seller_id?: number
+  market_item_id?: number
   price: string
   commission: string
   status: string
   trade_offer_id: string | null
   cancelled_reason: string | null
   expires_at: string | null
+  created_at?: string
   market_item?: MarketItem
 }
 
@@ -87,10 +94,27 @@ export interface CaseOpening {
 
 export interface Transaction {
   id: number
-  user_id: number
   type: string
   amount: string
   balance_after: string
   metadata: Record<string, unknown> | null
   created_at: string
+}
+
+export type SupportTicketStatus = 'open' | 'closed'
+
+export interface SupportMessage {
+  id: number
+  body: string
+  is_staff: boolean
+  created_at: string
+}
+
+export interface SupportTicket {
+  id: number
+  subject: string | null
+  status: SupportTicketStatus
+  created_at: string
+  updated_at: string
+  messages?: SupportMessage[]
 }

@@ -53,6 +53,16 @@ export async function fetchProfileListings(
   return data
 }
 
+export async function fetchProfileSold(
+  page = 1,
+  perPage = 20,
+): Promise<PaginatedResponse<MarketItem>> {
+  const { data } = await api.get<PaginatedResponse<MarketItem>>('/profile/sold', {
+    params: { page, per_page: perPage },
+  })
+  return data
+}
+
 export async function createMarketListing(payload: {
   asset_id: string
   price: number

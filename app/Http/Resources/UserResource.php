@@ -24,6 +24,18 @@ class UserResource extends JsonResource
             'username' => $this->username,
             'avatar_url' => $this->avatar_url,
             'trade_url' => $this->trade_url,
+            'email' => $this->when(
+                $request->user() !== null && (int) $request->user()->id === (int) $this->id,
+                $this->email,
+            ),
+            'email_verified_at' => $this->when(
+                $request->user() !== null && (int) $request->user()->id === (int) $this->id,
+                $this->email_verified_at?->toIso8601String(),
+            ),
+            'steam_trade_privacy_url' => sprintf(
+                'https://steamcommunity.com/profiles/%s/tradeoffers/privacy',
+                rawurlencode((string) $this->steam_id),
+            ),
             'role' => $this->role->value,
             'balances' => $this->when(
                 $this->relationLoaded('balances'),

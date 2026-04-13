@@ -18,8 +18,14 @@ alwaysApply: true
 # Авторизация
 GET    /auth/steam              — Редирект на Steam OpenID
 GET    /auth/steam/callback     — Callback от Steam
-POST   /auth/logout             — Выход
+POST   /auth/logout             — Выход (web, legacy)
+POST   /api/v1/auth/logout      — Выход SPA (Bearer Sanctum)
 GET    /api/v1/user             — Текущий пользователь + балансы
+PATCH  /api/v1/user/trade-url   — Сохранить Steam trade URL (auth, валидация ссылки)
+PATCH  /api/v1/user/email       — Email аккаунта (auth, ключ `email` обязателен в теле, может быть null)
+POST   /api/v1/user/email/verification-notification — Повторно отправить письмо с ссылкой подтверждения (auth, throttle 6/min)
+
+# Веб (не /api): GET /email/verify/{id}/{hash} — подтверждение email по подписанной ссылке из письма (signed)
 
 # Маркетплейс
 GET    /api/v1/market/items     — Листинг (фильтры: category, wear, price_min, price_max, search)
@@ -52,8 +58,8 @@ GET    /api/v1/profile/sold     — Проданные (auth)
 GET    /api/v1/transactions     — История транзакций (auth)
 
 # Кейсы
-GET    /api/v1/cases            — Список кейсов
-GET    /api/v1/cases/{id}       — Детали кейса (содержимое, уровни)
+GET    /api/v1/cases            — Список кейсов (auth)
+GET    /api/v1/cases/{id}       — Детали кейса (содержимое, уровни) (auth)
 POST   /api/v1/cases/{id}/open  — Открыть кейс (auth)
 
 # ЛК кейсов
@@ -62,8 +68,14 @@ POST   /api/v1/profile/case-inventory/{id}/sell — Продать за бала
 POST   /api/v1/profile/case-inventory/{id}/withdraw — Вывести в Steam (auth)
 
 # Апгрейд
-GET    /api/v1/upgrade/items    — Доступные предметы для апгрейда
+GET    /api/v1/upgrade/items    — Доступные предметы для апгрейда (auth)
 POST   /api/v1/upgrade          — Сделать апгрейд (auth)
+
+# Техподдержка (тикеты)
+GET    /api/v1/support/tickets           — Мои тикеты (auth)
+POST   /api/v1/support/tickets           — Создать тикет (auth)
+GET    /api/v1/support/tickets/{id}      — Тикет с сообщениями (auth, владелец)
+POST   /api/v1/support/tickets/{id}/messages — Сообщение в тикет (auth, владелец)
 ```
 
 ## Валидация
@@ -81,7 +93,8 @@ POST   /api/v1/upgrade          — Сделать апгрейд (auth)
 
 ## Авторизация запросов
 
-- `auth:sanctum` middleware для всех `/api/v1/*` кроме листинга маркета и кейсов
-- Маркет и кейсы (GET) — доступны без авторизации
+- `auth:sanctum` middleware для всех `/api/v1/*` кроме публичного листинга маркета (`GET market/items`), обмена Steam-токена и вебхука пополнения
+- Для гостя доступны только просмотр маркета (и связанные публичные эндпоинты по мере добавления)
+- Кейсы (GET), апгрейд (GET items), ЛК, баланс, сделки, поддержка — только авторизованные
 - Покупка, продажа, открытие кейсов — только авторизованные
 - Админские эндпоинты — через Filament, не через API

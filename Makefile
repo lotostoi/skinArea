@@ -37,3 +37,4 @@ test:
 
 setup: build install migrate up
 	@echo "Открой http://localhost:8080 — приложение. Vite: http://localhost:5173"
+	@echo "Почта (Mailpit): http://localhost:8025 — все письма из app/queue/scheduler"

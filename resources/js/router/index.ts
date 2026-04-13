@@ -22,11 +22,19 @@ const router = createRouter({
           path: 'cases',
           name: 'cases',
           component: () => import('@/pages/CasesPage.vue'),
+          meta: { requiresAuth: true },
         },
         {
           path: 'upgrade',
           name: 'upgrade',
           component: () => import('@/pages/UpgradePage.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'support',
+          name: 'support',
+          component: () => import('@/pages/SupportPage.vue'),
+          meta: { requiresAuth: true },
         },
         {
           path: 'profile',

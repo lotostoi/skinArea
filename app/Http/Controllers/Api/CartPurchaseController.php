@@ -14,6 +14,9 @@ class CartPurchaseController extends Controller
     {
         $request->validated();
 
+        // При реализации PurchaseCart: перед оплатой проверить у продавца trade_url и отсутствие economy/trade ban
+        // (см. ListSteamAssetForSale и SteamPlayerBansService).
+
         return response()->json([
             'message' => 'Покупка из корзины будет реализована в Action PurchaseCart.',
             'errors' => (object) [],

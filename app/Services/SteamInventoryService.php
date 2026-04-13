@@ -264,6 +264,12 @@ class SteamInventoryService
             );
         }
 
+        if ($lastStatus === 401) {
+            throw new SteamInventoryFetchException(
+                'Steam вернул 401 (доступ к JSON инвентаря отклонён). Это не из‑за trade URL: запрос идёт по Steam ID. Частая причина — IP сервера/Docker. Попробуйте SKINSARENA_STEAM_INVENTORY_HTTP_PROXY в .env или запрос с другого IP.',
+            );
+        }
+
         throw new SteamInventoryFetchException(
             'Не удалось получить ответ Steam (HTTP '.($lastStatus ?? '—').'). Повторите позже.',
         );

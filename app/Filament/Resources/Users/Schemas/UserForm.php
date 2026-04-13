@@ -30,7 +30,7 @@ class UserForm
                 TextInput::make('email')
                     ->label('Email')
                     ->email()
-                    ->helperText('Нужен для входа в админ-панель (роль admin).'),
+                    ->helperText('Нужен для входа в админ-панель (admin) и панель модератора (/moderator).'),
                 DateTimePicker::make('email_verified_at'),
                 TextInput::make('password')
                     ->password()
@@ -44,6 +44,10 @@ class UserForm
                 DateTimePicker::make('banned_until'),
                 Textarea::make('ban_reason')
                     ->columnSpanFull(),
+                DateTimePicker::make('support_muted_until')
+                    ->label('Ограничение чата поддержки до')
+                    ->seconds(false)
+                    ->helperText('Пока дата в будущем, пользователь не может писать в тикеты (API).'),
             ]);
     }
 }

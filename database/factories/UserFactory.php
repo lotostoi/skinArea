@@ -52,4 +52,12 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
         ]);
     }
+
+    public function moderator(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'role' => UserRole::Moderator,
+            'email' => fake()->unique()->safeEmail(),
+        ]);
+    }
 }

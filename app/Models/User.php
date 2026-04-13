@@ -9,6 +9,8 @@ use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
+use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -16,12 +18,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable implements FilamentUser, HasName
+class User extends Authenticatable implements FilamentUser, HasName, MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens;
 
     use HasFactory;
+    use MustVerifyEmailTrait;
     use Notifiable;
     use SoftDeletes;
 
@@ -36,6 +39,7 @@ class User extends Authenticatable implements FilamentUser, HasName
         'is_banned',
         'banned_until',
         'ban_reason',
+        'support_muted_until',
     ];
 
     protected $hidden = [
@@ -51,7 +55,13 @@ class User extends Authenticatable implements FilamentUser, HasName
             'role' => UserRole::class,
             'is_banned' => 'boolean',
             'banned_until' => 'datetime',
+            'support_muted_until' => 'datetime',
         ];
+    }
+
+    public function isSupportMuted(): bool
+    {
+        return $this->support_muted_until !== null && $this->support_muted_until->isFuture();
     }
 
     public function getMorphClass(): string
@@ -104,12 +114,22 @@ class User extends Authenticatable implements FilamentUser, HasName
         return $this->hasMany(WithdrawalRequest::class, 'processed_by');
     }
 
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->role === UserRole::Admin
-            && ! $this->is_banned
-            && $this->email !== null
-            && $this->password !== null;
+        if ($this->is_banned || $this->email === null || $this->password === null) {
+            return false;
+        }
+
+        return match ($panel->getId()) {
+            'admin' => $this->role === UserRole::Admin,
+            'moderator' => $this->role === UserRole::Moderator,
+            default => false,
+        };
     }
 
     public function getFilamentName(): string
