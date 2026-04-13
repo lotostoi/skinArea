@@ -60,6 +60,9 @@ jobs:
             git reset --hard "origin/$BRANCH"
             docker compose -f docker-compose.prod.yml run --rm --no-deps app composer install --no-dev --no-interaction --optimize-autoloader
             docker run --rm -v "$(pwd)":/var/www/html -w /var/www/html node:22-alpine sh -c "npm ci && npm run build"
+            mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions storage/logs bootstrap/cache
+            # До up PHP-FPM не должен стартовать без прав на storage (иначе tempnam / Blade на любом запросе, в т.ч. Steam).
+            sudo chown -R www-data:www-data storage bootstrap/cache
             docker compose -f docker-compose.prod.yml up -d --build
             # nginx мог не пересоздаваться: закэширован старый IP app:9000 → 502 после rebuild app
             docker compose -f docker-compose.prod.yml restart nginx

@@ -98,7 +98,10 @@
 
 **Docker Hub 429 / `sudo docker`:** `docker login` под пользователем пишет `~/.docker/config.json`, а **`sudo docker`** ходит в Hub **от root** и смотрит `/root/.docker/` — логина там нет → снова анонимный лимит. Либо **`sudo docker login`**, либо `sudo usermod -aG docker ВАШ_USER`, перелогин в SSH и **`docker compose` без sudo**. Образ `composer:2` в Dockerfile не используется — Composer ставится установщиком с getcomposer.org, остаётся тянуть в основном `php:8.4-fpm-bookworm`.
 
-**HTTP 500, `tempnam(): file created in the system's temporary directory` (PHP 8.4):** PHP-FPM в контейнере работает от **`www-data`**. Если `php artisan config:cache`, `view:cache` и т.п. запускали от **root**, файлы в `storage/framework/views` и `bootstrap/cache` оказываются с владельцем root — FPM не может писать, `tempnam()` откатывается в системный каталог и даёт исключение. Исправление: `docker compose -f docker-compose.prod.yml exec -T app chown -R www-data:www-data storage bootstrap/cache`, затем пересобрать кеши от **`www-data`**: `exec -u www-data -T app php artisan config:cache` (и `route:cache`, `view:cache`). В CI это уже заложено в workflow.
+**HTTP 500, `tempnam(): file created in the system's temporary directory` (PHP 8.4):** PHP-FPM в контейнере — **`www-data`**. Пишет в `storage/framework/views` (Blade) и `bootstrap/cache`. Если каталоги принадлежат **root** или пользователю деплоя (после `sudo chown $(whoami)` на весь проект), а контейнер уже поднялся — любой запрос (в т.ч. **`/auth/steam-complete`** после Steam) может упасть с этой ошибкой. **Сразу на сервере:**  
+`mkdir -p storage/framework/views storage/framework/cache storage/logs bootstrap/cache`  
+`sudo chown -R www-data:www-data storage bootstrap/cache`  
+`docker compose -f docker-compose.prod.yml exec -u www-data -T app php artisan view:clear` (при необходимости) и снова `exec -u www-data -T app php artisan config:cache` / `route:cache` / `view:cache`. В **GitHub Actions** деплой сначала выставляет `www-data` на `storage` и `bootstrap/cache` **до** `docker compose up`, затем повторяет `chown` после старта — см. `.github/workflows/ci-deploy.yml`.
 
 **HTTP 502 Bad Gateway (страница от nginx):** для запросов к **`/`** и обычным страницам Laravel это не Mailpit — nginx не достучался до **PHP-FPM** (`app:9000`). В логах nginx часто: `connect() failed (111: Connection refused) ... upstream: "fastcgi://172.18.x.x:9000"` — контейнер **`nginx` не перезапускали**, а **`app` пересоздали** (деплой, `up --build`): у `app` сменился IP в сети Docker, nginx держит старый. **Сразу:** `docker compose -f docker-compose.prod.yml restart nginx`. В репозитории: `docker/nginx/default.conf` уже с **resolver + переменной** `fastcgi_pass`, чтобы IP обновлялся без ручного рестарта. Также проверь `docker compose ... logs app` (падение PHP, `.env`, БД, Redis, OOM).
 
@@ -107,7 +110,7 @@
 ## Что происходит при push в `main` или `master`
 
 1. GitHub Actions: `composer install`, `npm ci`, `npm run build`, `php artisan test`.
-2. Если тесты зелёные — SSH на VPS, в `DEPLOY_PATH`: `git fetch` и `git reset --hard` на ту же ветку, что запушена, затем `composer install --no-dev`, сборка фронта через контейнер `node`, `docker compose -f docker-compose.prod.yml up -d --build`, `chown` на `storage` и `bootstrap/cache` для `www-data`, миграции и кеши artisan от `www-data` (см. workflow).
+2. Если тесты зелёные — SSH на VPS, в `DEPLOY_PATH`: `git fetch` и `git reset --hard`, `composer install --no-dev`, сборка фронта через `node`, **`mkdir` + `chown www-data` на `storage` и `bootstrap/cache` до `up`**, затем `docker compose -f docker-compose.prod.yml up -d --build`, `restart nginx`, повторный `chown`, миграции и кеши artisan от `www-data` (см. `.github/workflows/ci-deploy.yml`).
 
 ---
 
