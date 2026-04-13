@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import AppButton from '@/components/ui/AppButton.vue'
 import {
@@ -28,10 +28,14 @@ const privacyUrl = computed(() => {
   return 'https://steamcommunity.com/my/tradeoffers/privacy'
 })
 
-onMounted(() => {
-  emailDraft.value = auth.user?.email?.trim() ? auth.user.email : ''
-  tradeUrlDraft.value = auth.user?.trade_url?.trim() ? auth.user.trade_url : ''
-})
+watch(
+  () => auth.user,
+  (u) => {
+    emailDraft.value = u?.email?.trim() ? u.email : ''
+    tradeUrlDraft.value = u?.trade_url?.trim() ? u.trade_url : ''
+  },
+  { immediate: true },
+)
 
 function dismissSessionFlag(): void {
   sessionStorage.removeItem(SESSION_POST_STEAM_WELCOME_MODAL)

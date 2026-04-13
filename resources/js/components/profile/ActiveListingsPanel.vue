@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { fetchProfileListings, removeMarketListing } from '@/utils/market'
 import type { MarketItem } from '@/types/models'
@@ -42,15 +42,12 @@ function formatPrice(p: string): string {
   return `${Number(p).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`
 }
 
-onMounted(() => {
-  if (props.enabled) void load()
-})
-
 watch(
   () => props.enabled,
   (v) => {
     if (v) void load()
   },
+  { immediate: true },
 )
 
 defineExpose({ reload: load })

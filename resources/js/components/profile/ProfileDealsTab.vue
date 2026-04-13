@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { fetchDeals } from '@/utils/deals'
 import type { Deal } from '@/types/models'
 
@@ -57,12 +57,6 @@ async function load() {
   }
 }
 
-onMounted(() => {
-  if (props.active) {
-    void load()
-  }
-})
-
 watch(
   () => props.active,
   (v: boolean) => {
@@ -70,6 +64,7 @@ watch(
       void load()
     }
   },
+  { immediate: true },
 )
 </script>
 

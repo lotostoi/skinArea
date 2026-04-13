@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { fetchSteamInventory, type SteamInventoryItem } from '@/utils/market'
 
@@ -57,15 +57,12 @@ async function load() {
   }
 }
 
-onMounted(() => {
-  if (props.enabled) void load()
-})
-
 watch(
   () => props.enabled,
   (v) => {
     if (v) void load()
   },
+  { immediate: true },
 )
 </script>
 

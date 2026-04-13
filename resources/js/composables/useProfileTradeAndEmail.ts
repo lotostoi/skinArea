@@ -72,7 +72,7 @@ export function useProfileTradeAndEmail() {
       if (u?.email?.trim()) {
         if (!u.email_verified_at) {
           showAppAlert(
-            'Email сохранён. На этот адрес отправлено письмо со ссылкой для подтверждения — откройте письмо и нажмите кнопку в нём. Локально с Docker письма попадают в Mailpit (порт 8025).',
+            'Email сохранён. На этот адрес отправлено письмо со ссылкой для подтверждения — откройте письмо и нажмите кнопку в нём. Локально с Docker письма в Mailpit: тот же хост, путь /mailpit/.',
             { variant: 'success', title: 'Почта обновлена' },
           )
         } else {
