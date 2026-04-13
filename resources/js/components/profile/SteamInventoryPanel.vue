@@ -72,7 +72,14 @@ watch(
       <h3 class="text-lg font-semibold text-text-primary">Инвентарь Steam ({{ inventoryGameLabel }})</h3>
       <AppButton variant="secondary" size="sm" :loading="loading" @click="load">Обновить</AppButton>
     </div>
-    <template v-if="error">
+    <div
+      v-if="loading"
+      class="rounded-lg border border-border bg-input/40 py-14 text-center text-sm text-text-muted"
+    >
+      Загрузка инвентаря…
+    </div>
+
+    <template v-else-if="error">
       <p class="text-sm text-danger" :class="showInventoryPrivacyHint ? 'mb-2' : 'mb-4'">{{ error }}</p>
       <p v-if="showInventoryPrivacyHint" class="text-sm text-text-secondary mb-4">
         <a
@@ -86,7 +93,7 @@ watch(
         — в разделе «Конфиденциальность» для «Инвентарь» выберите «Открытый» (Public).
       </p>
     </template>
-    <p v-else-if="!loading && items.length === 0" class="text-text-secondary text-sm space-y-2">
+    <p v-else-if="items.length === 0" class="text-text-secondary text-sm space-y-2">
       <span v-if="steamRawAssets !== null && steamRawAssets === 0">
         По ответу Steam предметов в этом инвентаре нет (0 строк). Проверьте
         <code class="text-text-primary">SKINSARENA_STEAM_INVENTORY_APP_ID</code> (Dota: 570), Steam ID в профиле
