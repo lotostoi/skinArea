@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { fetchTransactions } from '@/utils/transactions'
 import type { Transaction } from '@/types/models'
-
-const props = defineProps<{
-  active: boolean
-}>()
 
 const items = ref<Transaction[]>([])
 const loading = ref(false)
@@ -67,9 +63,6 @@ const filtered = computed(() => {
 })
 
 async function load() {
-  if (!props.active) {
-    return
-  }
   loading.value = true
   try {
     const res = await fetchTransactions(1, 50)
@@ -81,19 +74,13 @@ async function load() {
   }
 }
 
-watch(
-  () => props.active,
-  (v: boolean) => {
-    if (v) {
-      void load()
-    }
-  },
-  { immediate: true },
-)
+onMounted(() => {
+  void load()
+})
 </script>
 
 <template>
-  <div v-show="active" class="space-y-6">
+  <div class="space-y-6">
     <h2 class="text-xl font-bold uppercase tracking-wide text-text-primary md:text-2xl">
       Транзакции
     </h2>

@@ -23,17 +23,42 @@ class ItemsRelationManager extends RelationManager
 {
     protected static string $relationship = 'items';
 
-    protected static ?string $title = 'Предметы уровня';
+    protected static ?string $title = 'Призы уровня';
 
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                TextInput::make('name')->label('Название')->required(),
-                TextInput::make('image_url')->label('URL изображения')->url()->maxLength(1024),
-                TextInput::make('price')->label('Цена')->required()->numeric()->minValue(0),
-                Select::make('wear')->label('Износ')->options(ItemWear::class)->required(),
-                Select::make('rarity')->label('Редкость')->options(ItemRarity::class)->required(),
+                TextInput::make('name')
+                    ->label('Название приза')
+                    ->required()
+                    ->maxLength(255)
+                    ->helperText('Например: «AK-47 | Redline». Отображается в деталях кейса и в инвентаре игрока.'),
+
+                TextInput::make('image_url')
+                    ->label('URL изображения')
+                    ->url()
+                    ->maxLength(1024)
+                    ->helperText('Пока в MVP нет собственного CDN: можно указать путь к файлу в public/ или внешний HTTPS-URL с превью скина.'),
+
+                TextInput::make('price')
+                    ->label('Цена, ₽')
+                    ->required()
+                    ->numeric()
+                    ->minValue(0)
+                    ->prefix('₽')
+                    ->helperText('Цена приза в балансе. В MVP задаётся вручную — автоценообразование по внешним маркетам появится позже.'),
+
+                Select::make('wear')
+                    ->label('Износ')
+                    ->options(ItemWear::class)
+                    ->required(),
+
+                Select::make('rarity')
+                    ->label('Редкость')
+                    ->options(ItemRarity::class)
+                    ->required()
+                    ->helperText('Редкость определяет цвет рамки карточки в UI.'),
             ]);
     }
 
@@ -42,17 +67,17 @@ class ItemsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                TextColumn::make('name')->searchable(),
-                ImageColumn::make('image_url')->circular(),
-                TextColumn::make('price')->numeric()->sortable(),
-                TextColumn::make('wear')->badge(),
-                TextColumn::make('rarity')->badge(),
+                ImageColumn::make('image_url')->label('')->circular(),
+                TextColumn::make('name')->label('Название')->searchable(),
+                TextColumn::make('price')->label('Цена, ₽')->numeric()->sortable(),
+                TextColumn::make('wear')->label('Износ')->badge(),
+                TextColumn::make('rarity')->label('Редкость')->badge(),
                 TextColumn::make('created_at')->dateTime()->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()->label('Добавить приз'),
             ])
             ->recordActions([
                 EditAction::make(),

@@ -52,12 +52,22 @@ export interface Deal {
   market_item?: MarketItem
 }
 
+export interface GameCaseCategory {
+  id: number
+  name: string
+  sort_order: number
+}
+
 export interface GameCase {
   id: number
   name: string
   image_url: string
   price: string
   is_active: boolean
+  is_featured_on_home?: boolean
+  sort_order?: number
+  category_id?: number | null
+  category?: GameCaseCategory | null
   levels?: CaseLevel[]
 }
 

@@ -1,6 +1,17 @@
 import api from '@/utils/api'
-import type { MarketItem } from '@/types/models'
-import type { PaginatedResponse } from '@/types/api'
+import type { MarketItem, GameCase } from '@/types/models'
+import type { PaginatedResponse, ApiResponse } from '@/types/api'
+
+export interface MarketFilters {
+  page?: number
+  per_page?: number
+  category?: string | null
+  wear?: string | null
+  price_min?: number | null
+  price_max?: number | null
+  search?: string | null
+  sort?: 'price_asc' | 'price_desc' | 'newest' | null
+}
 
 export interface SteamInventoryItem {
   asset_id: string
@@ -34,13 +45,40 @@ export async function fetchSteamInventory(): Promise<SteamInventoryApiResponse> 
 }
 
 export async function fetchMarketItems(
-  page = 1,
-  perPage = 20,
+  filters: MarketFilters = {},
 ): Promise<PaginatedResponse<MarketItem>> {
-  const { data } = await api.get<PaginatedResponse<MarketItem>>('/market/items', {
-    params: { page, per_page: perPage },
-  })
+  const params: Record<string, unknown> = {
+    page: filters.page ?? 1,
+    per_page: filters.per_page ?? 24,
+  }
+  if (filters.category) params.category = filters.category
+  if (filters.wear) params.wear = filters.wear
+  if (filters.price_min != null) params.price_min = filters.price_min
+  if (filters.price_max != null) params.price_max = filters.price_max
+  if (filters.search) params.search = filters.search
+  const { data } = await api.get<PaginatedResponse<MarketItem>>('/market/items', { params })
   return data
+}
+
+export async function fetchMarketItem(id: number): Promise<MarketItem> {
+  const { data } = await api.get<ApiResponse<MarketItem>>(`/market/items/${id}`)
+  return data.data
+}
+
+export async function fetchCases(): Promise<GameCase[]> {
+  const { data } = await api.get<{ data: GameCase[] }>('/cases')
+  return data.data
+}
+
+/** Публичный список: активные кейсы с галочкой «на главной» (без авторизации). */
+export async function fetchFeaturedCases(): Promise<GameCase[]> {
+  const { data } = await api.get<{ data: GameCase[] }>('/cases/featured', { skipAuth: true })
+  return data.data
+}
+
+export async function fetchCase(id: number): Promise<GameCase> {
+  const { data } = await api.get<ApiResponse<GameCase>>(`/cases/${id}`)
+  return data.data
 }
 
 export async function fetchProfileListings(

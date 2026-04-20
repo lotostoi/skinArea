@@ -1,35 +1,32 @@
 import { computed, ref, watch } from 'vue'
-import type { User } from '@/types/models'
 import { useAuthStore } from '@/stores/auth'
 import { showAppAlert } from '@/composables/appDialog'
 
-const tradeUrlDraft = ref('')
-const emailDraft = ref('')
-
-let authUserWatchStarted = false
-
-function syncDraftsFromUser(u: User | null): void {
-  tradeUrlDraft.value = u?.trade_url?.trim() ? u.trade_url : ''
-  emailDraft.value = u?.email?.trim() ? u.email : ''
+/** Safely convert any value to a trimmed string. Returns '' for non-strings. */
+function safeStr(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : ''
 }
 
 export function useProfileTradeAndEmail() {
   const auth = useAuthStore()
+
+  // Each component instance gets its own reactive draft refs.
+  // Using safeStr() guards against runtime values that don't match the TS type
+  // (e.g. null/undefined from API responses that don't include optional fields).
+  const tradeUrlDraft = ref(safeStr(auth.user?.trade_url))
+  const emailDraft = ref(safeStr(auth.user?.email))
+
   const tradeUrlSaving = ref(false)
   const emailSaving = ref(false)
 
-  if (!authUserWatchStarted) {
-    authUserWatchStarted = true
-    watch(
-      () => auth.user,
-      (u: User | null) => {
-        syncDraftsFromUser(u)
-      },
-      { immediate: true },
-    )
-  } else {
-    syncDraftsFromUser(auth.user)
-  }
+  // Sync drafts whenever auth.user changes (e.g. after loadUser() completes).
+  watch(
+    () => auth.user,
+    (u) => {
+      tradeUrlDraft.value = safeStr(u?.trade_url)
+      emailDraft.value = safeStr(u?.email)
+    },
+  )
 
   const steamPrivacyUrl = computed(() => {
     if (auth.user?.steam_trade_privacy_url) {
@@ -42,10 +39,10 @@ export function useProfileTradeAndEmail() {
   })
 
   const needsEmailBanner = computed(() => {
-    if (!auth.user?.email?.trim()) {
+    if (!safeStr(auth.user?.email)) {
       return true
     }
-    return !auth.user.email_verified_at
+    return !auth.user?.email_verified_at
   })
 
   async function saveTradeUrl(): Promise<void> {
@@ -69,7 +66,7 @@ export function useProfileTradeAndEmail() {
     try {
       await auth.updateEmail(emailDraft.value.trim() === '' ? null : emailDraft.value.trim())
       const u = auth.user
-      if (u?.email?.trim()) {
+      if (safeStr(u?.email)) {
         if (!u.email_verified_at) {
           showAppAlert(
             'Email сохранён. На этот адрес отправлено письмо со ссылкой для подтверждения — откройте письмо и нажмите кнопку в нём. Локально с Docker письма в Mailpit: тот же хост, путь /mailpit/.',

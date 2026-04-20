@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\CaseCategories\Schemas;
 
 use Filament\Forms\Components\TextInput;
@@ -13,13 +15,22 @@ class CaseCategoryForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->required(),
+                    ->label('Название категории')
+                    ->required()
+                    ->maxLength(255)
+                    ->helperText('Например: «Операции», «Оружейные кейсы», «Ножи». Видно пользователю на вкладке «Кейсы».'),
+
                 TextInput::make('sort_order')
+                    ->label('Порядок сортировки')
                     ->required()
                     ->numeric()
-                    ->default(0),
+                    ->default(0)
+                    ->helperText('Чем меньше число, тем выше категория в списке.'),
+
                 Toggle::make('is_visible')
-                    ->required(),
+                    ->label('Показывать в SPA')
+                    ->default(true)
+                    ->helperText('Если выключено — кейсы этой категории скрыты от пользователей, но остаются в админке.'),
             ]);
     }
 }

@@ -123,7 +123,7 @@ async function resendVerificationEmail(): Promise<void> {
         <div class="space-y-2">
           <div class="text-sm font-medium text-text-secondary">Email</div>
           <div class="flex flex-wrap items-center gap-2 text-sm">
-            <template v-if="!auth.user.email?.trim()">
+            <template v-if="!auth.user.email">
               <span class="inline-flex items-center gap-1.5 text-danger">
                 <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
@@ -157,7 +157,7 @@ async function resendVerificationEmail(): Promise<void> {
               :loading="emailSaving"
               @click="saveEmail"
             >
-              {{ auth.user.email?.trim() ? 'Сохранить email' : 'Добавить email' }}
+              {{ auth.user.email ? 'Сохранить email' : 'Добавить email' }}
             </AppButton>
           </div>
         </div>
@@ -170,7 +170,7 @@ async function resendVerificationEmail(): Promise<void> {
             Укажите email и подтвердите его по ссылке из письма.
           </p>
           <AppButton
-            v-if="auth.user?.email?.trim()"
+            v-if="auth.user?.email"
             variant="secondary"
             size="sm"
             class="uppercase tracking-wide"

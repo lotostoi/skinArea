@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\GameCases\Pages;
 
 use App\Filament\Resources\GameCases\GameCaseResource;
@@ -13,7 +15,8 @@ class ListGameCases extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Создать кейс'),
         ];
     }
 }

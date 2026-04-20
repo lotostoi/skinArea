@@ -5,10 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useProfileTradeAndEmail } from '@/composables/useProfileTradeAndEmail'
 import { showAppAlert } from '@/composables/appDialog'
 
-defineProps<{
-  active: boolean
-}>()
-
 const authStore = useAuthStore()
 const resendVerificationLoading = ref(false)
 
@@ -39,7 +35,7 @@ async function resendVerificationEmail(): Promise<void> {
 </script>
 
 <template>
-  <div v-show="active" class="space-y-6">
+  <div class="space-y-6">
     <h2 class="text-xl font-bold uppercase tracking-wide text-text-primary md:text-2xl">Настройки</h2>
     <p class="text-sm text-text-secondary">
       Токен расширения, уведомления, Telegram, электронная почта и трейд-ссылка. Почту и ссылку на обмен можно также
@@ -106,7 +102,7 @@ async function resendVerificationEmail(): Promise<void> {
     <section v-if="auth.user" class="rounded-xl border border-border bg-surface p-6">
       <h3 class="mb-2 text-base font-semibold text-text-primary">Электронная почта</h3>
       <div class="flex flex-wrap items-center gap-2 text-sm">
-        <template v-if="!auth.user.email?.trim()">
+        <template v-if="!auth.user.email">
           <span class="text-danger">Не указана</span>
         </template>
         <template v-else-if="!auth.user.email_verified_at">
@@ -130,7 +126,7 @@ async function resendVerificationEmail(): Promise<void> {
           :loading="emailSaving"
           @click="saveEmail"
         >
-          {{ auth.user.email?.trim() ? 'Сохранить' : 'Добавить' }}
+          {{ auth.user.email ? 'Сохранить' : 'Добавить' }}
         </AppButton>
       </div>
       <div
@@ -139,7 +135,7 @@ async function resendVerificationEmail(): Promise<void> {
       >
         <p class="mb-3">Укажите email и подтвердите его по ссылке из письма.</p>
         <AppButton
-          v-if="auth.user?.email?.trim()"
+          v-if="auth.user?.email"
           variant="secondary"
           size="sm"
           class="uppercase tracking-wide"

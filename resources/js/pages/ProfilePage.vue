@@ -8,6 +8,7 @@ import ProfileTransactionsTab from '@/components/profile/ProfileTransactionsTab.
 import ProfileDealsTab from '@/components/profile/ProfileDealsTab.vue'
 import ProfileSettingsTab from '@/components/profile/ProfileSettingsTab.vue'
 import ListForSaleModal from '@/components/profile/ListForSaleModal.vue'
+import AppSpinner from '@/components/ui/AppSpinner.vue'
 import { createMarketListing } from '@/utils/market'
 import type { SteamInventoryItem } from '@/utils/market'
 import { showAppAlert } from '@/composables/appDialog'
@@ -19,7 +20,34 @@ const route = useRoute()
 const router = useRouter()
 const activeTab = ref<CabinetTab>('inventory')
 
+// Start as true (show spinner) so the first render is NEVER blank.
+// Set to false only when we have confirmed auth state.
+const isReady = ref(auth.user !== null)
+
 onMounted(async () => {
+  const localToken = localStorage.getItem('auth_token')
+
+  if (!localToken) {
+    await router.replace({ name: 'home' })
+    return
+  }
+
+  // User not in Pinia yet — could be timing issue between guard and render.
+  // Sync token and load user.
+  if (!auth.user) {
+    if (!auth.token) {
+      auth.$patch({ token: localToken })
+    }
+    await auth.loadUser()
+  }
+
+  if (!auth.user) {
+    await router.replace({ name: 'home' })
+    return
+  }
+
+  isReady.value = true
+
   if (route.query.email_verified === '1') {
     await auth.loadUser()
     await router.replace({ path: route.path, query: {} })
@@ -93,7 +121,11 @@ function onListingsChanged() {
 </script>
 
 <template>
-  <div v-if="auth.user" class="relative pb-10">
+  <div v-if="!isReady" class="flex justify-center py-24">
+    <AppSpinner size="lg" />
+  </div>
+
+  <div v-else-if="auth.user" class="relative pb-10">
     <nav class="mb-3 text-xs text-text-muted">
       <router-link to="/" class="transition-colors hover:text-text-secondary">Главная</router-link>
       <span class="mx-1.5 text-border">/</span>
@@ -123,8 +155,8 @@ function onListingsChanged() {
 
     <div class="min-h-[320px]">
       <ProfileInventoryTab
+        v-if="activeTab === 'inventory'"
         ref="inventoryTabRef"
-        :enabled="activeTab === 'inventory'"
         :has-trade-url="hasTradeUrl"
         :steam-privacy-url="steamPrivacyUrl"
         :steam-inventory-key="steamInventoryKey"
@@ -132,11 +164,11 @@ function onListingsChanged() {
         @listings-changed="onListingsChanged"
       />
 
-      <ProfileTransactionsTab :active="activeTab === 'transactions'" />
+      <ProfileTransactionsTab v-if="activeTab === 'transactions'" />
 
-      <ProfileDealsTab :active="activeTab === 'deals'" />
+      <ProfileDealsTab v-if="activeTab === 'deals'" />
 
-      <ProfileSettingsTab :active="activeTab === 'settings'" />
+      <ProfileSettingsTab v-if="activeTab === 'settings'" />
     </div>
 
     <ListForSaleModal

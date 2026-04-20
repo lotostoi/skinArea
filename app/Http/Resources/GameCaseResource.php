@@ -24,6 +24,14 @@ class GameCaseResource extends JsonResource
             'image_url' => $this->image_url,
             'price' => $this->price,
             'sort_order' => $this->sort_order,
+            'is_active' => $this->is_active,
+            'is_featured_on_home' => $this->is_featured_on_home,
+            'category_id' => $this->category_id,
+            'category' => $this->whenLoaded('category', fn (): ?array => $this->category ? [
+                'id' => $this->category->id,
+                'name' => $this->category->name,
+                'sort_order' => $this->category->sort_order,
+            ] : null),
             'levels' => CaseLevelResource::collection($this->whenLoaded('levels')),
         ];
     }

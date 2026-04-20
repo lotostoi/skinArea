@@ -18,7 +18,7 @@ onMounted(async () => {
 
   try {
     await auth.exchangeCode(code)
-    router.replace({ name: 'home' })
+    await router.replace({ name: 'profile' })
   } catch {
     error.value = 'Не удалось завершить авторизацию. Попробуйте ещё раз.'
   }

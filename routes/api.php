@@ -26,6 +26,10 @@ Route::prefix('v1')->group(function (): void {
     Route::get('market/items', [MarketItemController::class, 'index']);
     Route::get('market/items/{market_item}', [MarketItemController::class, 'show']);
 
+    Route::get('cases/featured', [CaseController::class, 'featured']);
+    Route::get('cases', [CaseController::class, 'index']);
+    Route::get('cases/{caseId}', [CaseController::class, 'show'])->whereNumber('caseId');
+
     Route::post('balance/deposit/callback', [BalanceController::class, 'depositCallback']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
@@ -37,8 +41,6 @@ Route::prefix('v1')->group(function (): void {
         Route::post('user/email/verification-notification', [UserEmailVerificationNotificationController::class, 'store'])
             ->middleware('throttle:6,1');
 
-        Route::get('cases', [CaseController::class, 'index']);
-        Route::get('cases/{caseId}', [CaseController::class, 'show'])->whereNumber('caseId');
         Route::get('upgrade/items', [UpgradeController::class, 'items']);
 
         Route::post('market/items', [MarketItemController::class, 'store']);

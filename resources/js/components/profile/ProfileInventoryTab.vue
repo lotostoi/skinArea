@@ -8,7 +8,6 @@ import type { SteamInventoryItem } from '@/utils/market'
 type InventorySub = 'all' | 'active' | 'sold'
 
 defineProps<{
-  enabled: boolean
   hasTradeUrl: boolean
   steamPrivacyUrl: string
   steamInventoryKey: number
@@ -38,7 +37,7 @@ defineExpose({ reloadAfterListing })
 </script>
 
 <template>
-  <div v-show="enabled" class="space-y-6">
+  <div class="space-y-6">
     <h2 class="text-xl font-bold uppercase tracking-wide text-text-primary md:text-2xl">Мой инвентарь</h2>
 
     <div class="flex flex-wrap gap-1 border-b border-border">
@@ -61,20 +60,20 @@ defineExpose({ reloadAfterListing })
     <div v-show="sub === 'active'">
       <ActiveListingsPanel
         ref="listingsRef"
-        :enabled="enabled && sub === 'active'"
+        :enabled="sub === 'active'"
         @changed="emit('listingsChanged')"
       />
     </div>
 
     <div v-show="sub === 'sold'">
-      <ProfileSoldPanel ref="soldRef" :enabled="enabled && sub === 'sold'" />
+      <ProfileSoldPanel ref="soldRef" :enabled="sub === 'sold'" />
     </div>
 
     <div v-show="sub === 'all'">
       <SteamInventoryPanel
         v-if="hasTradeUrl"
         :key="steamInventoryKey"
-        :enabled="enabled && sub === 'all'"
+        :enabled="sub === 'all'"
         @list-item="emit('listItem', $event)"
       />
       <div v-else class="rounded-xl border border-border bg-surface p-8 text-center">

@@ -31,8 +31,8 @@ const privacyUrl = computed(() => {
 watch(
   () => auth.user,
   (u) => {
-    emailDraft.value = u?.email?.trim() ? u.email : ''
-    tradeUrlDraft.value = u?.trade_url?.trim() ? u.trade_url : ''
+    emailDraft.value = typeof u?.email === 'string' ? u.email.trim() : ''
+    tradeUrlDraft.value = typeof u?.trade_url === 'string' ? u.trade_url.trim() : ''
   },
   { immediate: true },
 )

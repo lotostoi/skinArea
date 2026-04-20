@@ -1,23 +1,30 @@
 <script setup lang="ts">
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppButton from '@/components/ui/AppButton.vue'
+import MarketItemCard from '@/components/market/MarketItemCard.vue'
+import CaseCardSkeleton from '@/components/ui/CaseCardSkeleton.vue'
+import MarketItemCardSkeleton from '@/components/ui/MarketItemCardSkeleton.vue'
+import { fetchMarketItems, fetchFeaturedCases } from '@/utils/market'
+import type { MarketItem, GameCase } from '@/types/models'
+import { useCartStore } from '@/stores/cart'
+import { formatPrice } from '@/utils/format'
 
 const auth = useAuthStore()
+const cart = useCartStore()
 const router = useRouter()
 
 const ASSET = '/images/playstore'
 
-const marketMock = [
-  { id: 1, name: 'AK-47 | Redline', wear: 'FT', price: '12 490 ₽', image: `${ASSET}/goods/csgo/weapon/ak47.png` },
-  { id: 2, name: 'AWP | Atheris', wear: 'MW', price: '8 200 ₽', image: `${ASSET}/goods/csgo/weapon/awp.png` },
-  { id: 3, name: 'M4A4', wear: 'FN', price: '54 900 ₽', image: `${ASSET}/goods/csgo/weapon/m4a4.png` },
-  { id: 4, name: 'USP-S', wear: 'WW', price: '6 100 ₽', image: `${ASSET}/goods/csgo/weapon/usp.png` },
-  { id: 5, name: 'Glock-18', wear: 'FN', price: '89 000 ₽', image: `${ASSET}/goods/csgo/weapon/glock.png` },
-  { id: 6, name: 'Desert Eagle', wear: 'FN', price: '42 300 ₽', image: `${ASSET}/goods/csgo/weapon/deagle.png` },
-]
+const liveItems = ref<MarketItem[]>([])
+const liveItemsLoading = ref(true)
 
-const caseImages = [
+const featuredCases = ref<GameCase[]>([])
+const featuredCasesLoading = ref(true)
+const featuredCasesError = ref(false)
+
+const caseFallbackImages = [
   `${ASSET}/goods/csgo/case/chroma.png`,
   `${ASSET}/goods/csgo/case/hydra.png`,
   `${ASSET}/goods/csgo/case/glove.png`,
@@ -28,23 +35,27 @@ const caseImages = [
   `${ASSET}/goods/csgo/case/wildfire.png`,
 ] as const
 
-const casesMock = [
-  { id: 1, title: 'Chroma', price: '249 ₽', image: caseImages[0] },
-  { id: 2, title: 'Hydra', price: '199 ₽', image: caseImages[1] },
-  { id: 3, title: 'Glove', price: '179 ₽', image: caseImages[2] },
-  { id: 4, title: 'Spectrum', price: '219 ₽', image: caseImages[3] },
-  { id: 5, title: 'Gamma', price: '159 ₽', image: caseImages[4] },
-  { id: 6, title: 'Falchion', price: '229 ₽', image: caseImages[5] },
-  { id: 7, title: 'Revolver', price: '189 ₽', image: caseImages[6] },
-  { id: 8, title: 'Wildfire', price: '269 ₽', image: caseImages[7] },
+const casesFallback = [
+  { id: 1, title: 'Chroma', price: '249 ₽', image: caseFallbackImages[0] },
+  { id: 2, title: 'Hydra', price: '289 ₽', image: caseFallbackImages[1] },
+  { id: 3, title: 'Glove', price: '349 ₽', image: caseFallbackImages[2] },
+  { id: 4, title: 'Spectrum', price: '269 ₽', image: caseFallbackImages[3] },
+  { id: 5, title: 'Gamma', price: '259 ₽', image: caseFallbackImages[4] },
+  { id: 6, title: 'Falchion', price: '279 ₽', image: caseFallbackImages[5] },
+  { id: 7, title: 'Revolver', price: '189 ₽', image: caseFallbackImages[6] },
+  { id: 8, title: 'Wildfire', price: '329 ₽', image: caseFallbackImages[7] },
 ]
 
-const heroBannerImage = `${ASSET}/slider/csgo/sl-1.jpg`
-const steamBannerImage = `${ASSET}/banner-2.jpg`
+const marqueeSkeletonCount = 14
 
 const marqueeStrip = [
-  ...caseImages,
-  ...marketMock.map((m) => m.image),
+  ...caseFallbackImages,
+  `${ASSET}/goods/csgo/weapon/ak47.png`,
+  `${ASSET}/goods/csgo/weapon/awp.png`,
+  `${ASSET}/goods/csgo/weapon/m4a4.png`,
+  `${ASSET}/goods/csgo/weapon/usp.png`,
+  `${ASSET}/goods/csgo/weapon/glock.png`,
+  `${ASSET}/goods/csgo/weapon/deagle.png`,
   `${ASSET}/goods/csgo/case/bravo.png`,
   `${ASSET}/goods/csgo/case/phoenix.png`,
   `${ASSET}/goods/csgo/case/spectrum2.png`,
@@ -52,6 +63,39 @@ const marqueeStrip = [
   `${ASSET}/goods/csgo/weapon/aug.png`,
   `${ASSET}/goods/csgo/case/knifecovert.png`,
 ] as const
+
+const casesForShowcase = computed(() => {
+  if (featuredCases.value.length > 0) {
+    return featuredCases.value.map((c) => ({
+      id: c.id,
+      title: c.name,
+      price: formatPrice(c.price),
+      image: c.image_url || caseFallbackImages[0],
+      live: true as const,
+    }))
+  }
+  return casesFallback.map((c) => ({ ...c, live: false as const }))
+})
+
+type MarqueeItem = { src: string; alt: string; caseId: number | null }
+
+const marqueeFallbackItems = computed((): MarqueeItem[] =>
+  marqueeStrip.map((src) => ({ src, alt: '', caseId: null })),
+)
+
+const marqueeItems = computed((): MarqueeItem[] => {
+  if (featuredCases.value.length > 0) {
+    return featuredCases.value.map((c) => ({
+      src: c.image_url || caseFallbackImages[0],
+      alt: c.name,
+      caseId: c.id,
+    }))
+  }
+  return marqueeFallbackItems.value
+})
+
+const heroBannerImage = `${ASSET}/slider/csgo/sl-1.jpg`
+const steamBannerImage = `${ASSET}/banner-2.jpg`
 
 function goCases(): void {
   if (auth.isAuthenticated) {
@@ -61,6 +105,22 @@ function goCases(): void {
   auth.steamLogin()
 }
 
+function goCase(id: number): void {
+  if (auth.isAuthenticated) {
+    void router.push({ name: 'case-detail', params: { id } })
+    return
+  }
+  auth.steamLogin()
+}
+
+function onMarqueeClick(item: MarqueeItem): void {
+  if (item.caseId != null) {
+    goCase(item.caseId)
+    return
+  }
+  goCases()
+}
+
 function goUpgrade(): void {
   if (auth.isAuthenticated) {
     void router.push({ name: 'upgrade' })
@@ -68,26 +128,68 @@ function goUpgrade(): void {
   }
   auth.steamLogin()
 }
+
+function openItem(it: MarketItem): void {
+  void router.push({ name: 'market-item', params: { id: it.id } })
+}
+
+function toggleCart(it: MarketItem): void {
+  cart.toggle(it)
+}
+
+onMounted(async () => {
+  try {
+    const res = await fetchMarketItems({ page: 1, per_page: 12 })
+    liveItems.value = res.data
+  } catch {
+    liveItems.value = []
+  } finally {
+    liveItemsLoading.value = false
+  }
+
+  try {
+    featuredCases.value = await fetchFeaturedCases()
+  } catch {
+    featuredCasesError.value = true
+  } finally {
+    featuredCasesLoading.value = false
+  }
+})
 </script>
 
 <template>
   <div class="space-y-14 pb-16 -mx-6 px-6">
     <div
-      class="relative -mx-6 mb-10 overflow-hidden border-y border-border bg-sidebar/90 py-3 md:py-4 marquee-wrap"
+      class="relative -mx-6 mb-10 overflow-hidden border-y border-border bg-sidebar/90 py-3 md:py-4 marquee-wrap min-h-[4.5rem] md:min-h-[5.5rem]"
+      :data-static-marquee="featuredCasesLoading ? 'true' : undefined"
       role="presentation"
     >
-      <div class="marquee-track">
+      <div v-if="featuredCasesLoading" class="marquee-track marquee-track--skeleton">
+        <template v-for="dup in [0, 1]" :key="'sk-dup-' + dup">
+          <div
+            v-for="n in marqueeSkeletonCount"
+            :key="`${dup}-${n}`"
+            class="marquee-item shrink-0 flex items-center justify-center px-2 md:px-4"
+          >
+            <div
+              class="h-14 w-[72px] md:h-[4.5rem] md:w-[100px] max-w-[100px] md:max-w-[120px] rounded-md border border-border bg-input animate-pulse"
+              aria-hidden="true"
+            />
+          </div>
+        </template>
+      </div>
+      <div v-else class="marquee-track">
         <template v-for="dup in [0, 1]" :key="dup">
           <button
-            v-for="(src, idx) in marqueeStrip"
+            v-for="(item, idx) in marqueeItems"
             :key="`${dup}-${idx}`"
             type="button"
             class="marquee-item shrink-0 flex items-center justify-center px-2 md:px-4 opacity-90 hover:opacity-100 transition-opacity"
-            @click="goCases"
+            @click="onMarqueeClick(item)"
           >
             <img
-              :src="src"
-              alt=""
+              :src="item.src"
+              :alt="item.alt"
               class="h-14 w-auto md:h-[4.5rem] max-w-[100px] md:max-w-[120px] object-contain drop-shadow-md pointer-events-none"
               width="120"
               height="72"
@@ -152,8 +254,12 @@ function goUpgrade(): void {
     <section>
       <div class="flex items-end justify-between gap-4 mb-5">
         <div>
-          <h2 class="text-xl md:text-2xl font-bold text-text-primary">Кейсы CS2</h2>
-          <p class="text-sm text-text-secondary mt-1">Выбери кейс и открой его</p>
+          <h2 class="text-xl md:text-2xl font-bold text-text-primary">Популярные кейсы</h2>
+          <p class="text-sm text-text-secondary mt-1">
+            Подборка для главной задаётся в админке
+            <span v-if="featuredCases.length > 0" class="text-text-muted">· активные отмеченные кейсы</span>
+            <span v-else-if="featuredCasesError" class="text-text-muted">· не удалось загрузить, показаны примеры</span>
+          </p>
         </div>
         <router-link v-if="auth.isAuthenticated" to="/cases" class="text-sm font-semibold text-primary hover:text-primary-light shrink-0">
           Все кейсы →
@@ -163,31 +269,42 @@ function goUpgrade(): void {
         </button>
       </div>
       <div
-        class="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scroll-smooth snap-x snap-mandatory"
+        class="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 scroll-smooth snap-x snap-mandatory min-h-[14.5rem] sm:min-h-[15.5rem]"
         style="scrollbar-width: thin"
       >
-        <button
-          v-for="c in casesMock"
-          :key="c.id"
-          type="button"
-          class="snap-start shrink-0 w-[140px] sm:w-[160px] text-left group"
-          @click="goCases"
-        >
+        <template v-if="featuredCasesLoading">
           <div
-            class="aspect-[4/5] rounded-lg border border-border overflow-hidden bg-input flex items-center justify-center p-3 transition-transform duration-200 group-hover:scale-[1.03] group-hover:border-border-hover group-hover:shadow-lg"
+            v-for="n in 8"
+            :key="'fc-sk-' + n"
+            class="snap-start shrink-0 w-[140px] sm:w-[160px] h-full min-h-[13rem] flex flex-col"
           >
-            <img
-              :src="c.image"
-              :alt="c.title"
-              class="max-h-full max-w-full object-contain drop-shadow-md"
-              width="160"
-              height="200"
-              loading="lazy"
-            >
+            <CaseCardSkeleton ribbon />
           </div>
-          <p class="mt-2 text-sm font-semibold text-text-primary truncate">{{ c.title }}</p>
-          <p class="text-sm font-bold text-primary">{{ c.price }}</p>
-        </button>
+        </template>
+        <template v-else>
+          <button
+            v-for="c in casesForShowcase"
+            :key="c.id"
+            type="button"
+            class="snap-start shrink-0 w-[140px] sm:w-[160px] text-left group"
+            @click="c.live ? goCase(c.id) : goCases()"
+          >
+            <div
+              class="aspect-[4/5] rounded-lg border border-border overflow-hidden bg-input flex items-center justify-center p-3 transition-transform duration-200 group-hover:scale-[1.03] group-hover:border-border-hover group-hover:shadow-lg"
+            >
+              <img
+                :src="c.image"
+                :alt="c.title"
+                class="max-h-full max-w-full object-contain drop-shadow-md"
+                width="160"
+                height="200"
+                loading="lazy"
+              >
+            </div>
+            <p class="mt-2 text-sm font-semibold text-text-primary truncate">{{ c.title }}</p>
+            <p class="text-sm font-bold text-primary">{{ c.price }}</p>
+          </button>
+        </template>
       </div>
     </section>
 
@@ -195,41 +312,33 @@ function goUpgrade(): void {
       <div class="flex items-end justify-between gap-4 mb-5">
         <div>
           <h2 class="text-xl md:text-2xl font-bold text-text-primary">Популярное на маркете</h2>
-          <p class="text-sm text-text-secondary mt-1">Популярные лоты на площадке</p>
+          <p class="text-sm text-text-secondary mt-1">Актуальные лоты от продавцов</p>
         </div>
         <router-link to="/market" class="text-sm font-semibold text-primary hover:text-primary-light shrink-0">
           В маркет →
         </router-link>
       </div>
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <router-link
-          v-for="m in marketMock"
-          :key="m.id"
-          to="/market"
-          class="group rounded-lg border border-border bg-surface overflow-hidden transition-all duration-200 hover:border-border-hover hover:bg-surface-hover hover:scale-[1.02]"
-        >
-          <div class="aspect-square relative overflow-hidden bg-input flex items-center justify-center p-2">
-            <img
-              :src="m.image"
-              :alt="m.name"
-              class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-200"
-              width="200"
-              height="200"
-              loading="lazy"
-            >
-            <div
-              class="pointer-events-none absolute inset-0 bg-linear-to-t from-body/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-hidden="true"
-            />
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 min-h-[26rem]">
+        <template v-if="liveItemsLoading">
+          <MarketItemCardSkeleton v-for="n in 12" :key="'mi-sk-' + n" compact />
+        </template>
+        <template v-else-if="liveItems.length === 0">
+          <div class="col-span-full rounded-lg border border-border bg-surface p-8 text-center text-text-secondary">
+            Пока нет активных лотов.
           </div>
-          <div class="p-3">
-            <p class="text-xs font-medium text-wear-ft">{{ m.wear }}</p>
-            <p class="text-sm font-semibold text-text-primary line-clamp-2 group-hover:text-primary-light transition-colors">
-              {{ m.name }}
-            </p>
-            <p class="text-sm font-bold text-primary mt-1">{{ m.price }}</p>
-          </div>
-        </router-link>
+        </template>
+        <template v-else>
+          <MarketItemCard
+            v-for="it in liveItems"
+            :key="it.id"
+            :item="it"
+            :in-cart="cart.has(it.id)"
+            compact
+            @click="openItem"
+            @add-to-cart="toggleCart"
+          />
+        </template>
       </div>
     </section>
 
@@ -279,6 +388,15 @@ function goUpgrade(): void {
   align-items: center;
   gap: 2rem;
   animation: sa-home-marquee 50s linear infinite;
+}
+
+.marquee-track--skeleton {
+  animation: none;
+  width: max-content;
+}
+
+.marquee-wrap[data-static-marquee='true'] .marquee-track {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

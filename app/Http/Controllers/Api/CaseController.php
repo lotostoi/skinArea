@@ -16,8 +16,22 @@ class CaseController extends Controller
     {
         $cases = GameCase::query()
             ->active()
+            ->with('category')
             ->orderBy('sort_order')
-            ->paginate(20);
+            ->get();
+
+        return GameCaseResource::collection($cases)->response();
+    }
+
+    public function featured(): JsonResponse
+    {
+        $cases = GameCase::query()
+            ->active()
+            ->featuredOnHome()
+            ->with('category')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
 
         return GameCaseResource::collection($cases)->response();
     }
@@ -27,7 +41,7 @@ class CaseController extends Controller
         $case = GameCase::query()
             ->active()
             ->whereKey($caseId)
-            ->with(['levels.items'])
+            ->with(['category', 'levels' => fn ($q) => $q->orderBy('level'), 'levels.items'])
             ->firstOrFail();
 
         return GameCaseResource::make($case)->response();

@@ -21,5 +21,7 @@ declare module '*.vue' {
 declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
+    /** Главная и аналоги: только для гостей; залогиненный уходит в ЛК */
+    guestOnly?: boolean
   }
 }

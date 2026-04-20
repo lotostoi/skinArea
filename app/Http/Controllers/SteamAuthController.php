@@ -88,7 +88,7 @@ class SteamAuthController extends Controller
             'data' => [
                 'token' => $payload['token'],
                 'token_type' => 'Bearer',
-                'user' => (new UserResource($user))->toArray($request),
+                'user' => (new UserResource($user))->resolve($request),
             ],
         ]);
     }

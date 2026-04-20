@@ -26,18 +26,27 @@ class LevelsRelationManager extends RelationManager
         return $schema
             ->components([
                 TextInput::make('level')
-                    ->label('Уровень')
+                    ->label('Уровень (1–5)')
                     ->required()
                     ->numeric()
                     ->minValue(1)
-                    ->maxValue(5),
+                    ->maxValue(5)
+                    ->helperText('1 — самый частый уровень, 5 — самый редкий. Уровни с одинаковым номером не допускаются.'),
+
                 TextInput::make('name')
                     ->label('Название уровня')
-                    ->required(),
+                    ->required()
+                    ->maxLength(255)
+                    ->helperText('Пример: «Армейское», «Тайное», «Нож/Перчатки». Видно пользователю в деталях кейса.'),
+
                 TextInput::make('chance')
                     ->label('Шанс, %')
                     ->required()
-                    ->numeric(),
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(100)
+                    ->step('0.0001')
+                    ->helperText('Вероятность выпадения уровня в процентах. Сумма шансов всех уровней должна быть 100. Проверяется вручную.'),
             ]);
     }
 
@@ -45,16 +54,18 @@ class LevelsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('name')
+            ->defaultSort('level')
             ->columns([
                 TextColumn::make('level')->label('Уровень')->numeric()->sortable(),
                 TextColumn::make('name')->label('Название')->searchable(),
-                TextColumn::make('chance')->label('Шанс %')->numeric()->sortable(),
+                TextColumn::make('chance')->label('Шанс, %')->numeric()->sortable(),
+                TextColumn::make('items_count')->counts('items')->label('Призов')->badge(),
                 TextColumn::make('created_at')->dateTime()->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()->label('Добавить уровень'),
             ])
             ->recordActions([
                 EditAction::make(),

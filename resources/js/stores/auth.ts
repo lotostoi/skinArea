@@ -32,7 +32,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loadUser(): Promise<void> {
-    if (!token.value) return
+    // Sync token from localStorage if Pinia state is empty (e.g. after a hard
+    // page reload where Pinia was re-created before bootstrap finished).
+    if (!token.value) {
+      const stored = localStorage.getItem('auth_token')
+      if (!stored) return
+      token.value = stored
+    }
     loading.value = true
     try {
       const { data } = await api.get<{ data: User }>('/user')

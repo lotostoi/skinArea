@@ -20,6 +20,7 @@ class GameCase extends Model
         'category_id',
         'sort_order',
         'is_active',
+        'is_featured_on_home',
     ];
 
     public function casts(): array
@@ -27,6 +28,7 @@ class GameCase extends Model
         return [
             'price' => 'decimal:2',
             'is_active' => 'boolean',
+            'is_featured_on_home' => 'boolean',
         ];
     }
 
@@ -48,5 +50,10 @@ class GameCase extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeFeaturedOnHome(Builder $query): Builder
+    {
+        return $query->where('is_featured_on_home', true);
     }
 }

@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import { fetchDeals } from '@/utils/deals'
 import type { Deal } from '@/types/models'
-
-const props = defineProps<{
-  active: boolean
-}>()
 
 const items = ref<Deal[]>([])
 const loading = ref(false)
@@ -43,9 +39,6 @@ function formatDate(iso: string | undefined): string {
 }
 
 async function load() {
-  if (!props.active) {
-    return
-  }
   loading.value = true
   try {
     const res = await fetchDeals(1, 50)
@@ -57,19 +50,13 @@ async function load() {
   }
 }
 
-watch(
-  () => props.active,
-  (v: boolean) => {
-    if (v) {
-      void load()
-    }
-  },
-  { immediate: true },
-)
+onMounted(() => {
+  void load()
+})
 </script>
 
 <template>
-  <div v-show="active" class="space-y-6">
+  <div class="space-y-6">
     <h2 class="text-xl font-bold uppercase tracking-wide text-text-primary md:text-2xl">Мои сделки</h2>
     <p class="text-sm text-text-secondary">
       Статус, сумма и предмет по каждой сделке. Отправка и отмена трейда скоро будут доступны.
