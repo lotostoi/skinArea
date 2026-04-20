@@ -30,4 +30,4 @@ php artisan demo:wipe
 
 ## Добавление своих превью
 
-Если нужно подкрепить витрину более разнообразными превью реальных скинов CS2, положите PNG в `public/images/demo/skins/` и расширьте каталог в `database/seeders/demo/DemoSkinCatalog.php`.
+Если нужно подкрепить витрину более разнообразными превью реальных скинов CS2, положите PNG в `public/images/demo/skins/` и расширьте каталог в `database/seeders/Demo/DemoSkinCatalog.php`.
