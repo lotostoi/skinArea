@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('skins:catalog-sync')->dailyAt('04:15');
+Schedule::command('deals:settle-due')->everyTenMinutes()->withoutOverlapping();

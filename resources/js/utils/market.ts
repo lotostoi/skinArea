@@ -113,3 +113,20 @@ export async function removeMarketListing(id: number): Promise<MarketItem> {
   const { data } = await api.delete<{ data: MarketItem }>(`/market/items/${id}`)
   return data.data
 }
+
+export interface PurchaseCartDeal {
+  id: number
+  market_item_id: number
+  price: string
+  commission: string
+  status: string
+  expires_at: string | null
+  created_at: string
+}
+
+export async function purchaseCart(marketItemIds: number[]): Promise<PurchaseCartDeal[]> {
+  const { data } = await api.post<{ data: PurchaseCartDeal[] }>('/cart/purchase', {
+    market_item_ids: marketItemIds,
+  })
+  return data.data
+}

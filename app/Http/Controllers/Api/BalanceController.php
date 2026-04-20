@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Balance\ProcessFakeDeposit;
 use App\Enums\BalanceType;
+use App\Enums\TransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DepositBalanceRequest;
 use App\Http\Requests\DepositCallbackRequest;
 use App\Http\Requests\WithdrawBalanceRequest;
 use App\Http\Resources\BalanceResource;
 use App\Models\Balance;
+use App\Models\Transaction;
+use App\Services\LedgerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,22 +39,74 @@ class BalanceController extends Controller
         return BalanceResource::collection($user->balances)->response();
     }
 
-    public function deposit(DepositBalanceRequest $request): JsonResponse
+    public function deposit(DepositBalanceRequest $request, ProcessFakeDeposit $action): JsonResponse
     {
-        $request->validated();
+        $user = $request->user();
+        $amount = (string) $request->validated('amount');
+
+        $transaction = $action->execute($user, $amount);
+
+        foreach ([BalanceType::Main, BalanceType::Hold] as $type) {
+            Balance::query()->firstOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'type' => $type,
+                ],
+                ['amount' => 0],
+            );
+        }
+
+        $user->load('balances');
 
         return response()->json([
-            'message' => 'Пополнение будет настроено после интеграции платёжного провайдера.',
-            'errors' => (object) [],
-        ], 501);
+            'data' => [
+                'transaction_id' => $transaction->id,
+                'amount' => $transaction->amount,
+                'balances' => BalanceResource::collection($user->balances),
+            ],
+        ]);
     }
 
-    public function depositCallback(DepositCallbackRequest $request): JsonResponse
+    public function depositCallback(DepositCallbackRequest $request, LedgerService $ledger): JsonResponse
     {
-        $request->validated();
+        $idempotencyKey = (string) $request->validated('idempotency_key');
+        $paymentStatus = (string) $request->validated('status');
+        $reason = $request->validated('reason');
+
+        $transaction = Transaction::query()
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+
+        if ($transaction === null) {
+            return response()->json([
+                'message' => 'Транзакция не найдена.',
+                'errors' => (object) [],
+            ], 404);
+        }
+
+        if ($transaction->status !== TransactionStatus::Pending) {
+            return response()->json([
+                'data' => [
+                    'accepted' => true,
+                    'already_processed' => true,
+                    'transaction_id' => $transaction->id,
+                    'status' => $transaction->status->value,
+                ],
+            ]);
+        }
+
+        if ($paymentStatus === 'succeeded') {
+            $ledger->post($transaction);
+        } else {
+            $ledger->fail($transaction, is_string($reason) ? $reason : 'Ошибка платёжной системы');
+        }
 
         return response()->json([
-            'data' => ['accepted' => true],
+            'data' => [
+                'accepted' => true,
+                'transaction_id' => $transaction->id,
+                'status' => $transaction->fresh()->status->value,
+            ],
         ]);
     }
 

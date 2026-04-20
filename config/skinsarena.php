@@ -12,9 +12,16 @@ return [
         'steam_id' => env('ADMIN_STEAM_ID', '76561198000000001'),
     ],
 
+    'platform' => [
+        'steam_id' => env('PLATFORM_STEAM_ID', '76561198000000002'),
+        'email' => env('PLATFORM_EMAIL', 'platform@skinsarena.local'),
+        'user_id' => env('PLATFORM_USER_ID') !== null ? (int) env('PLATFORM_USER_ID') : null,
+    ],
+
     'marketplace' => [
         'commission' => (float) env('SKINSARENA_MARKET_COMMISSION_PERCENT', 5.0),
         'trade_timeout_minutes' => (int) env('SKINSARENA_TRADE_TIMEOUT_MINUTES', 15),
+        'purchase_hold_days' => (int) env('SKINSARENA_PURCHASE_HOLD_DAYS', 7),
     ],
 
     'cases' => [

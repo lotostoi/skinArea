@@ -2,11 +2,13 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppButton from '@/components/ui/AppButton.vue'
-import { fetchMarketItem } from '@/utils/market'
+import { fetchMarketItem, purchaseCart } from '@/utils/market'
 import type { MarketItem } from '@/types/models'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
+import { useBalanceStore } from '@/stores/balance'
 import { showAppAlert } from '@/composables/appDialog'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 import {
   categoryLabel,
   formatPrice,
@@ -20,10 +22,12 @@ const route = useRoute()
 const router = useRouter()
 const cart = useCartStore()
 const auth = useAuthStore()
+const balanceStore = useBalanceStore()
 
 const item = ref<MarketItem | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const buying = ref(false)
 
 const inCart = computed(() => (item.value ? cart.has(item.value.id) : false))
 const ringClass = computed(() => rarityRingClass(item.value?.rarity))
@@ -41,15 +45,30 @@ async function load(id: number): Promise<void> {
   }
 }
 
-function buyNow(): void {
+async function buyNow(): Promise<void> {
   if (!auth.isAuthenticated) {
     auth.steamLogin()
     return
   }
-  showAppAlert(
-    'Прямая покупка одним кликом будет подключена после интеграции платёжной системы и трейд-бота. В демо-версии действие недоступно.',
-    { title: 'В разработке' },
-  )
+  if (!item.value || buying.value) {
+    return
+  }
+  buying.value = true
+  try {
+    await purchaseCart([item.value.id])
+    cart.remove(item.value.id)
+    await balanceStore.fetchBalances()
+    showAppAlert(
+      'Покупка оформлена. Средства удержаны на 7 дней до завершения трейда.',
+      { title: 'Покупка принята', variant: 'success' },
+    )
+    await load(item.value.id)
+  } catch (e: unknown) {
+    const message = extractApiErrorMessage(e, 'Не удалось оформить покупку. Попробуйте позже.')
+    showAppAlert(message, { title: 'Ошибка покупки', variant: 'error' })
+  } finally {
+    buying.value = false
+  }
 }
 
 function toggleCart(): void {
@@ -126,9 +145,10 @@ watch(
               variant="primary"
               size="md"
               class="min-w-[180px]"
+              :disabled="buying"
               @click="buyNow"
             >
-              Купить
+              {{ buying ? 'Оформляем…' : 'Купить' }}
             </AppButton>
             <AppButton
               :variant="inCart ? 'secondary' : 'secondary'"

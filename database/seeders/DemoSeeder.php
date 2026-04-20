@@ -18,8 +18,9 @@ use App\Models\CaseLevel;
 use App\Models\Deal;
 use App\Models\GameCase;
 use App\Models\MarketItem;
-use App\Models\Transaction;
 use App\Models\User;
+use App\Services\Ledger\Dto\CreateEntryDto;
+use App\Services\LedgerService;
 use Database\Seeders\Demo\DemoSkinCatalog;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -270,16 +271,18 @@ class DemoSeeder extends Seeder
             ]);
 
             if ($status === DealStatus::Completed) {
-                Transaction::query()->create([
-                    'user_id' => $seller->id,
-                    'type' => TransactionType::Sale,
-                    'amount' => $price - $commission,
-                    'balance_after' => 25000.00,
-                    'reference_type' => 'deal',
-                    'reference_id' => $deal->id,
-                    'metadata' => ['demo' => true],
-                    'created_at' => $createdAt,
-                ]);
+                $ledger = app(LedgerService::class);
+                $dto = (new CreateEntryDto)
+                    ->setUserId((int) $seller->id)
+                    ->setType(TransactionType::Sale)
+                    ->setBalanceType(BalanceType::Main)
+                    ->setAmount((string) ($price - $commission))
+                    ->setReference($deal)
+                    ->setIdempotencyKey('demo-sale-'.$deal->id)
+                    ->setMetadata(['demo' => true, 'commission' => $commission]);
+
+                $pending = $ledger->createPending($dto);
+                $ledger->post($pending);
             }
         }
     }

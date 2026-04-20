@@ -21,9 +21,16 @@ class TransactionResource extends JsonResource
         return [
             'id' => $this->id,
             'type' => $this->type->value,
+            'status' => $this->status->value,
+            'balance_type' => $this->balance_type->value,
             'amount' => $this->amount,
             'balance_after' => $this->balance_after,
+            'reference_type' => $this->reference_type,
+            'reference_id' => $this->reference_id,
+            'reverses_transaction_id' => $this->reverses_transaction_id,
             'metadata' => $this->metadata,
+            'posted_at' => $this->posted_at,
+            'reversed_at' => $this->reversed_at,
             'created_at' => $this->created_at,
         ];
     }

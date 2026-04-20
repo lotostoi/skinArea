@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { fetchTransactions } from '@/utils/transactions'
-import type { Transaction } from '@/types/models'
+import type { Transaction, TransactionStatus } from '@/types/models'
+import { BalanceType } from '@/types/enums'
+import { DEPOSIT_SUCCESS_EVENT } from '@/utils/constants'
 
 const items = ref<Transaction[]>([])
 const loading = ref(false)
@@ -19,8 +21,32 @@ const typeLabels: Record<string, string> = {
   upgrade: 'Апгрейд',
 }
 
+const statusLabels: Record<TransactionStatus, string> = {
+  pending: 'В обработке',
+  posted: 'Успешно',
+  reversed: 'Откат',
+  failed: 'Ошибка',
+  cancelled: 'Отменено',
+}
+
+const statusBadgeClasses: Record<TransactionStatus, string> = {
+  pending: 'bg-warning/15 text-warning border border-warning/30',
+  posted: 'bg-success/15 text-success border border-success/30',
+  reversed: 'bg-text-muted/15 text-text-secondary border border-text-muted/30',
+  failed: 'bg-danger/15 text-danger border border-danger/30',
+  cancelled: 'bg-text-muted/15 text-text-secondary border border-text-muted/30',
+}
+
 function typeLabel(t: string): string {
   return typeLabels[t] ?? t
+}
+
+function statusLabel(s: TransactionStatus): string {
+  return statusLabels[s] ?? s
+}
+
+function statusClass(s: TransactionStatus): string {
+  return statusBadgeClasses[s] ?? statusBadgeClasses.posted
 }
 
 function formatMoney(v: string): string {
@@ -46,10 +72,19 @@ function metaString(m: Record<string, unknown> | null): string {
   return JSON.stringify(m).toLowerCase()
 }
 
+function providerLabel(t: Transaction): string {
+  const meta = t.metadata ?? {}
+  const provider = meta.provider
+  if (typeof provider === 'string' && provider !== '') {
+    return provider === 'fake' ? 'Тестовая' : provider
+  }
+  return '—'
+}
+
 const filtered = computed(() => {
   let list = items.value
   if (txView.value === 'holds') {
-    list = list.filter((t: Transaction) => t.type === 'purchase')
+    list = list.filter((t: Transaction) => t.balance_type === BalanceType.Hold)
   }
   const idq = filterId.value.trim()
   if (idq !== '') {
@@ -74,8 +109,17 @@ async function load() {
   }
 }
 
+function onDepositSuccess(): void {
+  void load()
+}
+
 onMounted(() => {
   void load()
+  window.addEventListener(DEPOSIT_SUCCESS_EVENT, onDepositSuccess)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener(DEPOSIT_SUCCESS_EVENT, onDepositSuccess)
 })
 </script>
 
@@ -86,7 +130,7 @@ onMounted(() => {
     </h2>
 
     <p class="text-sm text-text-secondary">
-      Единая таблица операций по балансу. Вкладка «Удержания» — операции покупки (связанные с удержанием средств).
+      Единая таблица операций по балансу. Вкладка «Удержания» показывает движения по hold-балансу.
     </p>
 
     <div class="flex flex-wrap gap-1 border-b border-border">
@@ -141,7 +185,7 @@ onMounted(() => {
             <th class="px-4 py-3">Статус</th>
             <th class="px-4 py-3">Сумма</th>
             <th class="px-4 py-3">Платёж. система</th>
-            <th class="px-4 py-3">Куда</th>
+            <th class="px-4 py-3">Связано</th>
             <th class="px-4 py-3">Баланс</th>
           </tr>
         </thead>
@@ -159,13 +203,31 @@ onMounted(() => {
           >
             <td class="px-4 py-3 align-top text-text-primary">
               <div class="font-medium">{{ typeLabel(t.type) }}</div>
-              <div class="mt-0.5 text-xs text-text-muted">{{ formatDate(t.created_at) }}</div>
+              <div class="mt-0.5 text-xs text-text-muted">
+                {{ formatDate(t.created_at) }}
+                <span v-if="t.balance_type === 'hold'" class="ml-1 text-warning">· hold</span>
+              </div>
             </td>
             <td class="px-4 py-3 font-mono text-xs text-text-secondary">{{ t.id }}</td>
-            <td class="px-4 py-3 text-text-muted">—</td>
+            <td class="px-4 py-3">
+              <span
+                class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium"
+                :class="statusClass(t.status)"
+              >
+                {{ statusLabel(t.status) }}
+              </span>
+            </td>
             <td class="px-4 py-3 font-semibold text-text-primary">{{ formatMoney(t.amount) }}</td>
-            <td class="px-4 py-3 text-text-muted">—</td>
-            <td class="px-4 py-3 text-text-muted">—</td>
+            <td class="px-4 py-3 text-text-secondary">{{ providerLabel(t) }}</td>
+            <td class="px-4 py-3 text-xs text-text-muted">
+              <span v-if="t.reverses_transaction_id">
+                Связано с #{{ t.reverses_transaction_id }}
+              </span>
+              <span v-else-if="t.reference_type && t.reference_id">
+                {{ t.reference_type }} #{{ t.reference_id }}
+              </span>
+              <span v-else>—</span>
+            </td>
             <td class="px-4 py-3 text-text-secondary">{{ formatMoney(t.balance_after) }}</td>
           </tr>
         </tbody>

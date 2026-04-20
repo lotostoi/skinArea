@@ -7,14 +7,49 @@ import EmptyStateGraphic from '@/components/ui/EmptyStateGraphic.vue'
 import MarketItemCard from '@/components/market/MarketItemCard.vue'
 import MarketItemCardSkeleton from '@/components/ui/MarketItemCardSkeleton.vue'
 import CartDrawer from '@/components/market/CartDrawer.vue'
-import { fetchMarketItems, type MarketFilters } from '@/utils/market'
+import { fetchMarketItems, purchaseCart, type MarketFilters } from '@/utils/market'
 import type { MarketItem } from '@/types/models'
 import { useCartStore } from '@/stores/cart'
+import { useAuthStore } from '@/stores/auth'
+import { useBalanceStore } from '@/stores/balance'
 import { showAppAlert } from '@/composables/appDialog'
 import { CATEGORY_LABELS } from '@/utils/format'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 const router = useRouter()
 const cart = useCartStore()
+const auth = useAuthStore()
+const balanceStore = useBalanceStore()
+
+const checkoutLoading = ref(false)
+
+async function handleCheckout(): Promise<void> {
+  if (!auth.isAuthenticated) {
+    auth.steamLogin()
+    return
+  }
+  if (cart.count === 0 || checkoutLoading.value) {
+    return
+  }
+  checkoutLoading.value = true
+  try {
+    const ids = cart.items.map((it) => it.id)
+    const deals = await purchaseCart(ids)
+    cart.clear()
+    cartOpen.value = false
+    await balanceStore.fetchBalances()
+    await load(page.value)
+    showAppAlert(
+      `Покупка оформлена. Сделок: ${deals.length}. Средства удержаны на 7 дней до завершения трейдов.`,
+      { title: 'Покупка принята', variant: 'success' },
+    )
+  } catch (e: unknown) {
+    const message = extractApiErrorMessage(e, 'Не удалось оформить покупку. Попробуйте позже.')
+    showAppAlert(message, { title: 'Ошибка покупки', variant: 'error' })
+  } finally {
+    checkoutLoading.value = false
+  }
+}
 
 const items = ref<MarketItem[]>([])
 const loading = ref(true)
@@ -290,6 +325,11 @@ watch(
       </div>
     </div>
 
-    <CartDrawer :open="cartOpen" @close="cartOpen = false" @checkout="showAppAlert('Оплата корзины будет подключена после интеграции платёжной системы и трейд-бота. В демо-версии действие недоступно.', { title: 'В разработке' })" />
+    <CartDrawer
+      :open="cartOpen"
+      :loading="checkoutLoading"
+      @close="cartOpen = false"
+      @checkout="handleCheckout"
+    />
   </div>
 </template>

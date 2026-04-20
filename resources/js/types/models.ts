@@ -102,12 +102,21 @@ export interface CaseOpening {
   case_item?: CaseItem
 }
 
+export type TransactionStatus = 'pending' | 'posted' | 'reversed' | 'failed' | 'cancelled'
+
 export interface Transaction {
   id: number
   type: string
+  status: TransactionStatus
+  balance_type: BalanceType
   amount: string
   balance_after: string
+  reference_type: string | null
+  reference_id: number | null
+  reverses_transaction_id: number | null
   metadata: Record<string, unknown> | null
+  posted_at: string | null
+  reversed_at: string | null
   created_at: string
 }
 

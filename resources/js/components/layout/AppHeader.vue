@@ -2,9 +2,11 @@
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBalanceStore } from '@/stores/balance'
+import { useDepositModalStore } from '@/stores/depositModal'
 
 const auth = useAuthStore()
 const balance = useBalanceStore()
+const depositModal = useDepositModalStore()
 
 const navItems = computed(() => {
   const items = [{ to: '/market', label: 'Маркет' }]
@@ -43,12 +45,20 @@ const navItems = computed(() => {
 
       <div class="flex items-center gap-4">
         <template v-if="auth.isAuthenticated && auth.user">
-          <div class="flex items-center gap-2 px-3 py-1.5 bg-surface rounded-md border border-border">
+          <button
+            type="button"
+            class="flex items-center gap-2 px-3 py-1.5 bg-surface rounded-md border border-border transition-colors hover:border-primary hover:bg-surface-hover"
+            title="Пополнить баланс"
+            @click="depositModal.open()"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95c-.285.475-.507 1-.67 1.55H6a1 1 0 000 2h.013a9.358 9.358 0 000 1H6a1 1 0 100 2h.351c.163.55.385 1.075.67 1.55C7.721 15.216 8.768 16 10 16s2.279-.784 2.979-1.95a1 1 0 10-1.715-1.029c-.472.786-.96.979-1.264.979-.304 0-.792-.193-1.264-.979a5.95 5.95 0 01-.488-.521H10a1 1 0 100-2H7.938a7.468 7.468 0 010-1H10a1 1 0 100-2H8.248c.14-.18.3-.373.488-.521z" />
             </svg>
             <span class="text-sm font-bold text-primary">{{ balance.mainBalance }} ₽</span>
-          </div>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-primary" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+          </button>
 
           <router-link
             to="/profile"

@@ -19,13 +19,19 @@ class DepositCallbackRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payload' => ['required', 'array'],
+            'idempotency_key' => ['required', 'string', 'max:64'],
+            'status' => ['required', 'string', 'in:succeeded,failed'],
+            'reason' => ['nullable', 'string', 'max:255'],
+            'payload' => ['nullable', 'array'],
         ];
     }
 
     public function attributes(): array
     {
         return [
+            'idempotency_key' => 'ключ идемпотентности',
+            'status' => 'статус платежа',
+            'reason' => 'причина ошибки',
             'payload' => 'данные платежа',
         ];
     }

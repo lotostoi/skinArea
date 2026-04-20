@@ -5,7 +5,7 @@ import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, wearTextClass } from '@/utils/format'
 
-defineProps<{ open: boolean }>()
+withDefaults(defineProps<{ open: boolean; loading?: boolean }>(), { loading: false })
 const emit = defineEmits<{ close: []; checkout: [] }>()
 
 const cart = useCartStore()
@@ -91,10 +91,16 @@ const totalFormatted = computed(() => formatPrice(cart.total))
                 variant="primary"
                 size="sm"
                 class="flex-1"
-                :disabled="cart.count === 0"
+                :disabled="cart.count === 0 || loading"
                 @click="emit('checkout')"
               >
-                {{ auth.isAuthenticated ? 'Оформить покупку' : 'Войти и купить' }}
+                {{
+                  loading
+                    ? 'Оформляем…'
+                    : auth.isAuthenticated
+                      ? 'Оформить покупку'
+                      : 'Войти и купить'
+                }}
               </AppButton>
             </div>
             <p class="text-[11px] text-text-muted text-center">

@@ -3,8 +3,10 @@ import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppMessageDialog from '@/components/ui/AppMessageDialog.vue'
+import DepositBalanceModal from '@/components/layout/DepositBalanceModal.vue'
 import PostSteamWelcomeModal from '@/components/layout/PostSteamWelcomeModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useDepositModalStore } from '@/stores/depositModal'
 import {
   SESSION_POST_STEAM_WELCOME_MODAL,
   welcomeModalSkippedStorageKey,
@@ -12,6 +14,7 @@ import {
 
 const route = useRoute()
 const auth = useAuthStore()
+const depositModal = useDepositModalStore()
 const showPostSteamWelcome = ref(false)
 
 function syncPostSteamWelcome(): void {
@@ -62,6 +65,7 @@ watch(
       <router-view :key="route.fullPath" />
     </main>
     <PostSteamWelcomeModal v-if="showPostSteamWelcome" @close="syncPostSteamWelcome" />
+    <DepositBalanceModal v-if="depositModal.isOpen" />
     <AppMessageDialog />
   </div>
 </template>

@@ -2,12 +2,14 @@
 import { ref } from 'vue'
 import { useBalanceStore } from '@/stores/balance'
 import { useAuthStore } from '@/stores/auth'
+import { useDepositModalStore } from '@/stores/depositModal'
 import AppButton from '@/components/ui/AppButton.vue'
 import { useProfileTradeAndEmail } from '@/composables/useProfileTradeAndEmail'
 import { showAppAlert } from '@/composables/appDialog'
 
 const balance = useBalanceStore()
 const authStore = useAuthStore()
+const depositModal = useDepositModalStore()
 const resendVerificationLoading = ref(false)
 
 const {
@@ -63,7 +65,14 @@ async function resendVerificationEmail(): Promise<void> {
             <p class="mt-1 text-xs text-text-muted">Steam ID: {{ auth.user.steam_id }}</p>
             <p class="mt-2 text-sm text-text-secondary">
               Баланс:
-              <span class="font-semibold text-primary">{{ balance.mainBalance }} ₽</span>
+              <button
+                type="button"
+                class="font-semibold text-primary underline decoration-dotted underline-offset-4 transition-colors hover:text-primary-hover"
+                title="Пополнить баланс"
+                @click="depositModal.open()"
+              >
+                {{ balance.mainBalance }} ₽
+              </button>
               <span class="mx-2 text-border">|</span>
               На удержании:
               <span class="font-semibold text-warning">{{ balance.holdBalance }} ₽</span>
