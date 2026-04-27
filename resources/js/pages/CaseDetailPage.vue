@@ -29,6 +29,7 @@ const showRoulette = ref(false)
 const showBatchResults = ref(false)
 const selectedQuantity = ref(1)
 
+
 const totalItems = computed(
   () =>
     gameCase.value?.levels?.reduce((sum: number, lvl: CaseLevel) => sum + (lvl.items?.length ?? 0), 0) ?? 0,
