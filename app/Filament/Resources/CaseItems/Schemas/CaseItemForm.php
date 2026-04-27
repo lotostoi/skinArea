@@ -12,6 +12,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\HtmlString;
 
 class CaseItemForm
 {
@@ -60,7 +62,7 @@ class CaseItemForm
 
                 Placeholder::make('catalog_preview')
                     ->label('Превью')
-                    ->content(static function ($get): string {
+                    ->content(static function ($get): string|Htmlable {
                         $externalId = $get('skin_catalog_external_id');
                         if (! $externalId) {
                             return 'Выберите скин из каталога для предпросмотра.';
@@ -70,7 +72,9 @@ class CaseItemForm
                             return 'Изображение недоступно.';
                         }
 
-                        return '<img src="'.e($item->image_url).'" alt="'.e($item->name).'" style="height:80px;object-fit:contain;">';
+                        return new HtmlString(
+                            '<img src="'.e($item->image_url).'" alt="'.e($item->name).'" style="height:80px;object-fit:contain;">'
+                        );
                     })
                     ->extraAttributes(['class' => 'min-h-[80px]'])
                     ->visible(static fn ($get): bool => (bool) $get('skin_catalog_external_id')),

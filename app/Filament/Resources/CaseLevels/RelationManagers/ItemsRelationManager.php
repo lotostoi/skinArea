@@ -26,7 +26,9 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -79,7 +81,7 @@ class ItemsRelationManager extends RelationManager
 
                 Placeholder::make('catalog_preview')
                     ->label('Превью')
-                    ->content(static function ($get): string {
+                    ->content(static function ($get): string|Htmlable {
                         $externalId = $get('skin_catalog_external_id');
                         if (! $externalId) {
                             return 'Выберите скин для предпросмотра.';
@@ -89,7 +91,9 @@ class ItemsRelationManager extends RelationManager
                             return 'Изображение недоступно.';
                         }
 
-                        return '<img src="'.e($item->image_url).'" alt="'.e($item->name).'" style="height:80px;object-fit:contain;">';
+                        return new HtmlString(
+                            '<img src="'.e($item->image_url).'" alt="'.e($item->name).'" style="height:80px;object-fit:contain;">'
+                        );
                     })
                     ->extraAttributes(['class' => 'min-h-[80px]'])
                     ->visible(static fn ($get): bool => (bool) $get('skin_catalog_external_id')),
