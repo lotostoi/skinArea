@@ -21,6 +21,7 @@ use App\Models\MarketItem;
 use App\Models\User;
 use App\Services\Ledger\Dto\CreateEntryDto;
 use App\Services\LedgerService;
+use App\Support\DemoDataMarkers;
 use Database\Seeders\Demo\DemoSkinCatalog;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -32,16 +33,6 @@ use Illuminate\Support\Str;
  */
 class DemoSeeder extends Seeder
 {
-    public const STEAM_ID_PREFIX = 'demo_';
-
-    public const USERNAME_PREFIX = 'demo_seller_';
-
-    public const CASE_CATEGORY_NAME = 'Демо-кейсы';
-
-    public const LISTING_ASSET_PREFIX = 'demo_asset_';
-
-    public const SOLD_ASSET_PREFIX = 'demo_sold_';
-
     public function run(): void
     {
         $sellers = $this->seedSellers();
@@ -57,16 +48,16 @@ class DemoSeeder extends Seeder
     private function seedSellers(): array
     {
         $definitions = [
-            ['username' => self::USERNAME_PREFIX.'1', 'suffix' => '01', 'avatar_seed' => 'demo-1'],
-            ['username' => self::USERNAME_PREFIX.'2', 'suffix' => '02', 'avatar_seed' => 'demo-2'],
-            ['username' => self::USERNAME_PREFIX.'3', 'suffix' => '03', 'avatar_seed' => 'demo-3'],
-            ['username' => self::USERNAME_PREFIX.'4', 'suffix' => '04', 'avatar_seed' => 'demo-4'],
+            ['username' => DemoDataMarkers::USERNAME_PREFIX.'1', 'suffix' => '01', 'avatar_seed' => 'demo-1'],
+            ['username' => DemoDataMarkers::USERNAME_PREFIX.'2', 'suffix' => '02', 'avatar_seed' => 'demo-2'],
+            ['username' => DemoDataMarkers::USERNAME_PREFIX.'3', 'suffix' => '03', 'avatar_seed' => 'demo-3'],
+            ['username' => DemoDataMarkers::USERNAME_PREFIX.'4', 'suffix' => '04', 'avatar_seed' => 'demo-4'],
         ];
 
         $sellers = [];
 
         foreach ($definitions as $def) {
-            $steamId = self::STEAM_ID_PREFIX.'765611980000'.$def['suffix'];
+            $steamId = DemoDataMarkers::STEAM_ID_PREFIX.'765611980000'.$def['suffix'];
 
             $user = User::query()->updateOrCreate(
                 ['steam_id' => $steamId],
@@ -112,7 +103,7 @@ class DemoSeeder extends Seeder
             foreach ($wearsForSkin as $wear) {
                 $seller = $sellers[$index % count($sellers)];
                 $price = $this->priceFor($skin['base_price'], $wear);
-                $assetId = self::LISTING_ASSET_PREFIX.Str::lower($skin['weapon']).'_'.Str::slug($skin['skin']).'_'.$wear->value.'_'.$index;
+                $assetId = DemoDataMarkers::LISTING_ASSET_PREFIX.Str::lower($skin['weapon']).'_'.Str::slug($skin['skin']).'_'.$wear->value.'_'.$index;
 
                 MarketItem::query()->updateOrCreate(
                     ['seller_id' => $seller->id, 'asset_id' => $assetId],
@@ -136,7 +127,7 @@ class DemoSeeder extends Seeder
     private function seedCaseCategory(): int
     {
         $category = CaseCategory::query()->updateOrCreate(
-            ['name' => self::CASE_CATEGORY_NAME],
+            ['name' => DemoDataMarkers::CASE_CATEGORY_NAME],
             ['sort_order' => 0, 'is_visible' => true],
         );
 
@@ -157,6 +148,7 @@ class DemoSeeder extends Seeder
                     'sort_order' => $sort,
                     'is_active' => true,
                     'is_featured_on_home' => $sort < 8,
+                    'is_manual_admin_case' => false,
                 ],
             );
 
@@ -232,7 +224,7 @@ class DemoSeeder extends Seeder
                 ? MarketItemStatus::Cancelled
                 : MarketItemStatus::Sold;
 
-            $assetId = self::SOLD_ASSET_PREFIX.$i;
+            $assetId = DemoDataMarkers::SOLD_ASSET_PREFIX.$i;
             $item = MarketItem::query()->updateOrCreate(
                 ['seller_id' => $seller->id, 'asset_id' => $assetId],
                 [

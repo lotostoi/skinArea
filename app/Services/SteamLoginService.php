@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\BalanceType;
-use App\Enums\UserRole;
 use App\Models\Balance;
 use App\Models\User;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
@@ -23,10 +22,9 @@ class SteamLoginService
                 'steam_id' => $steamId,
                 'username' => $steamAccount->getNickname() ?? 'steam_'.$steamId,
                 'avatar_url' => $steamAccount->getAvatar(),
-                'role' => UserRole::User,
             ]);
 
-            foreach ([BalanceType::Main, BalanceType::Hold] as $type) {
+            foreach ([BalanceType::Main, BalanceType::Bonus, BalanceType::Hold] as $type) {
                 Balance::query()->firstOrCreate(
                     [
                         'user_id' => $user->id,
@@ -44,7 +42,7 @@ class SteamLoginService
             'avatar_url' => $steamAccount->getAvatar() ?? $user->avatar_url,
         ]);
 
-        foreach ([BalanceType::Main, BalanceType::Hold] as $type) {
+        foreach ([BalanceType::Main, BalanceType::Bonus, BalanceType::Hold] as $type) {
             Balance::query()->firstOrCreate(
                 [
                     'user_id' => $user->id,

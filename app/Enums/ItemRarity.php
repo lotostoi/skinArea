@@ -28,4 +28,17 @@ enum ItemRarity: string implements HasLabel
             self::Contraband => 'Контрабанда',
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::ConsumerGrade => '#b0c3d9',
+            self::IndustrialGrade => '#5e98d9',
+            self::MilSpec => '#4b69ff',
+            self::Restricted => '#8847ff',
+            self::Classified => '#d32ce6',
+            self::Covert => '#eb4b4b',
+            self::Contraband => '#e4ae39',
+        };
+    }
 }

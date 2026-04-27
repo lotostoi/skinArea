@@ -9,6 +9,7 @@ use App\Enums\MarketItemStatus;
 use App\Models\Deal;
 use App\Models\MarketItem;
 use App\Models\User;
+use App\Services\DemoVisibilityService;
 use App\Services\LedgerService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class PurchaseCart
 {
     public function __construct(
         private readonly LedgerService $ledger,
+        private readonly DemoVisibilityService $demoVisibility,
     ) {}
 
     /**
@@ -55,6 +57,10 @@ class PurchaseCart
 
                 if ((int) $item->seller_id === (int) $buyer->id) {
                     throw new InvalidArgumentException('Нельзя покупать собственные лоты.');
+                }
+
+                if ($this->demoVisibility->shouldHideDemo() && $this->demoVisibility->isDemoMarketItem($item)) {
+                    throw new InvalidArgumentException('Один или несколько лотов недоступны для покупки.');
                 }
             }
 

@@ -1,4 +1,4 @@
-.PHONY: build rebuild-php up down install migrate db-fresh logs shell test
+.PHONY: build rebuild-php up down install migrate db-fresh logs shell test storage-link
 
 build:
 	docker compose build
@@ -35,6 +35,9 @@ shell:
 test:
 	docker compose run --rm app php artisan test
 
-setup: build install migrate up
+storage-link:
+	docker compose run --rm app php artisan storage:link
+
+setup: build install migrate storage-link up
 	@echo "Открой http://localhost:8080 — приложение. Vite: http://localhost:5173"
 	@echo "Почта (Mailpit): http://localhost:8025 — все письма из app/queue/scheduler"

@@ -13,7 +13,7 @@ use App\Models\MarketItem;
 use App\Models\Transaction;
 use App\Models\Upgrade;
 use App\Models\User;
-use Database\Seeders\DemoSeeder;
+use App\Support\DemoDataMarkers;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -23,7 +23,7 @@ use Laravel\Sanctum\PersonalAccessToken;
  *
  * Маркеры демо-данных:
  * - users: одновременно steam_id LIKE demo_% и username LIKE demo_seller_ (только демо-продавцы сидера);
- * - case_categories.name === DemoSeeder::CASE_CATEGORY_NAME (Демо-кейсы);
+ * - case_categories.name === DemoDataMarkers::CASE_CATEGORY_NAME (Демо-кейсы);
  * - market_items / deals / transactions — всё связанное с демо-продавцами.
  *
  * Команда НЕ трогает миграции и файлы в public/.
@@ -44,8 +44,8 @@ class DemoWipeCommand extends Command
 
         DB::transaction(function (): void {
             $sellerIds = User::query()
-                ->where('steam_id', 'like', DemoSeeder::STEAM_ID_PREFIX.'%')
-                ->where('username', 'like', DemoSeeder::USERNAME_PREFIX.'%')
+                ->where('steam_id', 'like', DemoDataMarkers::STEAM_ID_PREFIX.'%')
+                ->where('username', 'like', DemoDataMarkers::USERNAME_PREFIX.'%')
                 ->pluck('id')
                 ->all();
 
@@ -94,7 +94,7 @@ class DemoWipeCommand extends Command
             }
 
             $demoCategoryIds = CaseCategory::query()
-                ->where('name', DemoSeeder::CASE_CATEGORY_NAME)
+                ->where('name', DemoDataMarkers::CASE_CATEGORY_NAME)
                 ->pluck('id')
                 ->all();
 

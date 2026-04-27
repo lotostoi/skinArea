@@ -42,15 +42,9 @@
 
 ---
 
-## 3. Модалка после Steam (`PostSteamWelcomeModal`)
+## 3. Email и trade URL после входа
 
-### Что ломалось
-
-- Поля копировались из `auth.user` только в **`onMounted`**. Если `user` догружался чуть позже окна — черновики оставались пустыми.
-
-### Что сделано
-
-- **`watch(() => auth.user, …, { immediate: true })`** синхронизирует email / trade URL при любом обновлении пользователя.
+Отдельная модалка после Steam не используется: данные вводятся в **`ProfileCabinetTopCard`** и на вкладке **«Настройки»** (`ProfileSettingsTab`), черновики синхронизируются через **`useProfileTradeAndEmail`** (`watch` на `auth.user`).
 
 ---
 

@@ -18,21 +18,19 @@ class AdminUserSeeder extends Seeder
         $password = (string) config('skinsarena.admin.password');
         $steamId = (string) config('skinsarena.admin.steam_id');
 
-        $user = User::query()->updateOrCreate(
-            ['steam_id' => $steamId],
-            [
-                'email' => $email,
-                'email_verified_at' => now(),
-                'username' => 'admin',
-                'avatar_url' => null,
-                'trade_url' => null,
-                'password' => $password,
-                'role' => UserRole::Admin,
-                'is_banned' => false,
-                'banned_until' => null,
-                'ban_reason' => null,
-            ],
-        );
+        $user = User::query()->firstOrNew(['steam_id' => $steamId]);
+        $user->forceFill([
+            'email' => $email,
+            'email_verified_at' => now(),
+            'username' => 'admin',
+            'avatar_url' => null,
+            'trade_url' => null,
+            'password' => $password,
+            'role' => UserRole::Admin,
+            'is_banned' => false,
+            'banned_until' => null,
+            'ban_reason' => null,
+        ])->save();
 
         foreach ([BalanceType::Main, BalanceType::Hold] as $type) {
             Balance::query()->firstOrCreate(

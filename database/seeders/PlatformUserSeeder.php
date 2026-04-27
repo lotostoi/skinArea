@@ -17,21 +17,19 @@ class PlatformUserSeeder extends Seeder
         $steamId = (string) config('skinsarena.platform.steam_id');
         $email = (string) config('skinsarena.platform.email');
 
-        $user = User::query()->updateOrCreate(
-            ['steam_id' => $steamId],
-            [
-                'email' => $email,
-                'email_verified_at' => now(),
-                'username' => 'platform',
-                'avatar_url' => null,
-                'trade_url' => null,
-                'password' => null,
-                'role' => UserRole::Admin,
-                'is_banned' => false,
-                'banned_until' => null,
-                'ban_reason' => null,
-            ],
-        );
+        $user = User::query()->firstOrNew(['steam_id' => $steamId]);
+        $user->forceFill([
+            'email' => $email,
+            'email_verified_at' => now(),
+            'username' => 'platform',
+            'avatar_url' => null,
+            'trade_url' => null,
+            'password' => null,
+            'role' => UserRole::Admin,
+            'is_banned' => false,
+            'banned_until' => null,
+            'ban_reason' => null,
+        ])->save();
 
         foreach ([BalanceType::Main, BalanceType::Hold] as $type) {
             Balance::query()->firstOrCreate(

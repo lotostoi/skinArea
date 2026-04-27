@@ -35,11 +35,6 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
         'trade_url',
         'email',
         'password',
-        'role',
-        'is_banned',
-        'banned_until',
-        'ban_reason',
-        'support_muted_until',
     ];
 
     protected $hidden = [

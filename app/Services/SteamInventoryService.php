@@ -11,6 +11,7 @@ use App\Enums\ItemRarity;
 use App\Enums\ItemWear;
 use App\Exceptions\SteamInventoryFetchException;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class SteamInventoryService
@@ -57,8 +58,40 @@ class SteamInventoryService
      */
     private function fetchAndValidatePayload(string $steamId64): array
     {
-        $payload = $this->fetchAllPages($steamId64);
+        $payload = $this->fetchAllPagesCached($steamId64);
+        $this->ensureSuccessfulPayload($payload);
 
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function fetchAllPagesCached(string $steamId64): array
+    {
+        $ttlSeconds = $this->steamInventoryCacheTtlSeconds();
+        if ($ttlSeconds <= 0) {
+            return $this->fetchAllPages($steamId64);
+        }
+
+        return Cache::remember(
+            $this->inventoryCacheKey($steamId64),
+            now()->addSeconds($ttlSeconds),
+            function () use ($steamId64): array {
+                $payload = $this->fetchAllPages($steamId64);
+                // Кэшируем только успешный payload, ошибки не сохраняем в кэше.
+                $this->ensureSuccessfulPayload($payload);
+
+                return $payload;
+            },
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function ensureSuccessfulPayload(array $payload): void
+    {
         if (($payload['success'] ?? false) !== true && ($payload['success'] ?? null) !== 1) {
             $error = is_string($payload['Error'] ?? null) ? $payload['Error'] : null;
             if ($error !== null && str_contains(mb_strtolower($error), 'private')) {
@@ -67,8 +100,19 @@ class SteamInventoryService
 
             throw new SteamInventoryFetchException('Не удалось загрузить инвентарь Steam. Проверьте, что профиль и инвентарь публичные.');
         }
+    }
 
-        return $payload;
+    private function inventoryCacheKey(string $steamId64): string
+    {
+        $appId = (int) config('skinsarena.steam_inventory.app_id');
+        $contextId = (int) config('skinsarena.steam_inventory.context_id');
+
+        return sprintf('steam_inventory:%s:%d:%d', $steamId64, $appId, $contextId);
+    }
+
+    private function steamInventoryCacheTtlSeconds(): int
+    {
+        return max(0, (int) config('skinsarena.steam_inventory.cache_ttl_seconds', 300));
     }
 
     /**
