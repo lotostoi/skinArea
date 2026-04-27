@@ -13,6 +13,7 @@
 
         <div class="mb-4 rounded-xl border border-warning-200 bg-warning-50 px-5 py-3 text-sm text-warning-800 dark:border-warning-700 dark:bg-warning-900/30 dark:text-warning-300">
             Выберите нужный скин и нажмите <strong>«Добавить в уровень»</strong> прямо на карточке.
+            В окне укажите износ и <strong>цену в кейсе</strong> (по умолчанию подставляется цена из каталога, иначе 0).
             Используйте фильтры и поиск для быстрого подбора.
         </div>
     @endif

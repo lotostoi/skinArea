@@ -17,6 +17,10 @@ class FundAdjustmentsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->description(
+                'Журнал ручных и служебных движений фонда: кто внёс правку, на какую сумму и с каким комментарием. '
+                .'Суммы из этой таблицы входят в расчёт «Текущий фонд» вместе с открытиями.',
+            )
             ->recordTitleAttribute('id')
             ->defaultSort('created_at', 'desc')
             ->columns([

@@ -150,10 +150,15 @@ class AddSkinsToCaseLevel extends Page implements Tables\Contracts\HasTable
             ->filtersLayout(Tables\Enums\FiltersLayout::AboveContent)
             ->recordActions([
                 Action::make('add_to_level')
-                        ->label('Добавить в уровень')
-                        ->icon('heroicon-o-plus-circle')
-                        ->color('primary')
-                        ->form([
+                    ->label('Добавить в уровень')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('primary')
+                    ->form(function (SkinCatalogItem $record): array {
+                        $defaultPrice = $record->market_price !== null
+                            ? (string) $record->market_price
+                            : '0';
+
+                        return [
                             Select::make('wear')
                                 ->label('Износ для добавляемых скинов')
                                 ->options(ItemWear::class)
@@ -161,44 +166,48 @@ class AddSkinsToCaseLevel extends Page implements Tables\Contracts\HasTable
                                 ->default(ItemWear::FT->value)
                                 ->helperText('Каталог CS2 не хранит износ — выберите нужный для этого уровня.'),
 
-                            TextInput::make('price_multiplier')
-                                ->label('Множитель цены')
+                            TextInput::make('price')
+                                ->label('Цена в кейсе, ₽')
                                 ->numeric()
-                                ->default('1.0')
-                                ->minValue(0.01)
+                                ->required()
+                                ->minValue(0)
                                 ->step('0.01')
-                                ->suffix('×')
-                                ->helperText('Итоговая цена = рыночная цена × множитель. 1.0 — без изменений.'),
-                        ])
-                        ->action(function (SkinCatalogItem $record, array $data): void {
-                            $wear = $data['wear'] instanceof ItemWear
-                                ? $data['wear']
-                                : ItemWear::from((string) $data['wear']);
+                                ->default($defaultPrice)
+                                ->validationAttribute('цена')
+                                ->validationMessages([
+                                    'required' => 'Укажите цену.',
+                                    'numeric' => 'Цена должна быть числом.',
+                                    'min' => 'Цена не может быть отрицательной.',
+                                ])
+                                ->helperText('По умолчанию подставляется цена из каталога (market_price), если в каталоге нет — 0. Можно изменить перед сохранением.'),
+                        ];
+                    })
+                    ->action(function (SkinCatalogItem $record, array $data): void {
+                        $wear = $data['wear'] instanceof ItemWear
+                            ? $data['wear']
+                            : ItemWear::from((string) $data['wear']);
 
-                            $multiplier = max(0.01, (float) ($data['price_multiplier'] ?? 1.0));
-                            $rawPrice = $record->market_price !== null
-                                ? round((float) $record->market_price * $multiplier, 2)
-                                : 0.0;
+                        $price = max(0.0, (float) ($data['price'] ?? 0));
 
-                            CaseItem::query()->create([
-                                'case_level_id' => $this->levelId,
-                                'skin_catalog_external_id' => $record->external_id,
-                                'name' => $record->name,
-                                'image_url' => $record->image_url,
-                                'price' => $rawPrice,
-                                'wear' => $wear,
-                                'rarity' => $record->rarity !== null
-                                    ? ItemRarity::tryFrom($record->rarity) ?? ItemRarity::MilSpec
-                                    : ItemRarity::MilSpec,
-                            ]);
+                        CaseItem::query()->create([
+                            'case_level_id' => $this->levelId,
+                            'skin_catalog_external_id' => $record->external_id,
+                            'name' => $record->name,
+                            'image_url' => $record->image_url,
+                            'price' => round($price, 2),
+                            'wear' => $wear,
+                            'rarity' => $record->rarity !== null
+                                ? ItemRarity::tryFrom($record->rarity) ?? ItemRarity::MilSpec
+                                : ItemRarity::MilSpec,
+                        ]);
 
-                            Notification::make()
-                                ->title("Скин «{$record->name}» добавлен в уровень «{$this->level?->name}»")
-                                ->success()
-                                ->send();
-                        })
-                        ->modalHeading('Добавить скин в уровень')
-                        ->modalSubmitActionLabel('Добавить в уровень'),
+                        Notification::make()
+                            ->title("Скин «{$record->name}» добавлен в уровень «{$this->level?->name}»")
+                            ->success()
+                            ->send();
+                    })
+                    ->modalHeading('Добавить скин в уровень')
+                    ->modalSubmitActionLabel('Добавить в уровень'),
             ])
             ->paginated([25, 50, 100]);
     }

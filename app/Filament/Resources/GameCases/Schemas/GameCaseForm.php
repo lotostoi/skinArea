@@ -36,7 +36,9 @@ class GameCaseForm
                             ->numeric()
                             ->minValue(0)
                             ->prefix('₽')
-                            ->helperText('Списывается с баланса пользователя при нажатии «Открыть».'),
+                            ->helperText(
+                                'Списывается с баланса при открытии. Для активного кейса у уровня с наибольшим номером на вкладке «Уровни» поле «Пороговая цена» должно быть ровно половине этой суммы (ТЗ п. 9.8.2.1; см. documentation/architecture/case-economy-levels.md).',
+                            ),
 
                         Select::make('category_id')
                             ->label('Категория')

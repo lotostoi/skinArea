@@ -17,6 +17,10 @@ class OpeningsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->description(
+                'История реальных открытий: кто заплатил, какой предмет выпал и по какой цене учтён приз. '
+                .'Эти строки формируют «Всего потрачено» и «Выдано призов» в блоке фонда выше.',
+            )
             ->recordTitleAttribute('id')
             ->defaultSort('created_at', 'desc')
             ->columns([
