@@ -16,12 +16,16 @@ class SkinCatalogItem extends Model
         'rarity',
         'category',
         'weapon_name',
+        'market_price',
+        'price_synced_at',
         'last_synced_at',
     ];
 
     public function casts(): array
     {
         return [
+            'market_price' => 'decimal:2',
+            'price_synced_at' => 'datetime',
             'last_synced_at' => 'datetime',
         ];
     }

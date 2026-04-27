@@ -7,5 +7,6 @@ namespace App\Enums;
 enum BalanceType: string
 {
     case Main = 'main';
+    case Bonus = 'bonus';
     case Hold = 'hold';
 }

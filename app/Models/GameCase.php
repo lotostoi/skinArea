@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\CaseEconomyValidator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,12 +16,15 @@ class GameCase extends Model
 
     protected $fillable = [
         'name',
+        'description',
+        'shadow_color',
         'image_url',
         'price',
         'category_id',
         'sort_order',
         'is_active',
         'is_featured_on_home',
+        'is_manual_admin_case',
     ];
 
     public function casts(): array
@@ -29,7 +33,17 @@ class GameCase extends Model
             'price' => 'decimal:2',
             'is_active' => 'boolean',
             'is_featured_on_home' => 'boolean',
+            'is_manual_admin_case' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $case): void {
+            /** @var CaseEconomyValidator $validator */
+            $validator = app(CaseEconomyValidator::class);
+            $validator->validate($case, $case->levels()->get());
+        });
     }
 
     public function category(): BelongsTo
@@ -45,6 +59,11 @@ class GameCase extends Model
     public function openings(): HasMany
     {
         return $this->hasMany(CaseOpening::class, 'case_id');
+    }
+
+    public function fundAdjustments(): HasMany
+    {
+        return $this->hasMany(CaseFundAdjustment::class, 'case_id');
     }
 
     public function scopeActive(Builder $query): Builder

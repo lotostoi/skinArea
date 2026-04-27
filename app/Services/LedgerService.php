@@ -14,6 +14,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Ledger\Dto\CreateEntryDto;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -51,7 +52,20 @@ class LedgerService
             $data['reference_id'] = $reference->getKey();
         }
 
-        return Transaction::query()->create($data);
+        try {
+            return Transaction::query()->create($data);
+        } catch (QueryException $exception) {
+            if ($key === null) {
+                throw $exception;
+            }
+
+            $existing = Transaction::query()->where('idempotency_key', $key)->first();
+            if ($existing !== null) {
+                return $existing;
+            }
+
+            throw $exception;
+        }
     }
 
     public function post(Transaction $transaction): Transaction

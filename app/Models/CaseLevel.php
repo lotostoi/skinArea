@@ -17,12 +17,14 @@ class CaseLevel extends Model
         'level',
         'name',
         'chance',
+        'prize_amount',
     ];
 
     public function casts(): array
     {
         return [
             'chance' => 'decimal:2',
+            'prize_amount' => 'decimal:2',
             'created_at' => 'datetime',
         ];
     }
