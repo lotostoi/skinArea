@@ -9,14 +9,13 @@ use App\Services\CasePrizeFundService;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Js;
 
 class CaseFundWidget extends StatsOverviewWidget
 {
     public ?GameCase $record = null;
 
     protected ?string $heading = 'Фонд кейса и доступные уровни';
-
-    protected ?string $description = 'Внутренний учёт кейса (не отдельный баланс платформы). Подсказка к каждой метрике — наведите на «i» рядом с названием.';
 
     protected function getStats(): array
     {
@@ -71,12 +70,17 @@ class CaseFundWidget extends StatsOverviewWidget
 
     private function statLabelWithTooltip(string $label, string $tooltip): HtmlString
     {
-        $title = htmlspecialchars($tooltip, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $contentJs = (string) Js::from($tooltip);
+        // Js::from(string) даёт одинарные кавычки вокруг текста — HTML-атрибут тоже должен быть в двойных, иначе разметка ломается.
+        $xTooltip = '{ content: '.$contentJs.', theme: $store.theme, allowHTML: false }';
+        $xTooltipAttr = htmlspecialchars($xTooltip, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         return new HtmlString(
             '<span class="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">'
             .'<span>'.e($label).'</span>'
-            .'<span class="ms-0.5 inline-flex h-5 min-w-[1.25rem] cursor-help items-center justify-center self-center rounded-full border border-gray-400 text-[10px] font-bold leading-none text-gray-500 dark:border-gray-500 dark:text-gray-400" title="'.$title.'" aria-label="Пояснение к метрике" role="note" tabindex="0">i</span>'
+            .'<span x-tooltip="'.$xTooltipAttr.'" '
+            .'class="ms-0.5 relative z-10 inline-flex h-5 min-w-[1.25rem] cursor-help items-center justify-center self-center rounded-full border border-gray-400 text-[10px] font-bold leading-none text-gray-500 dark:border-gray-500 dark:text-gray-400" '
+            .'aria-label="Пояснение к метрике" role="note" tabindex="0">i</span>'
             .'</span>'
         );
     }
