@@ -18,6 +18,17 @@ class EditGameCase extends EditRecord
 {
     protected static string $resource = GameCaseResource::class;
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $data['is_manual_admin_case'] = true;
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

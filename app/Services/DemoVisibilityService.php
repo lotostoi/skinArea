@@ -157,25 +157,17 @@ final class DemoVisibilityService
     }
 
     /**
-     * При выключенном показе демо: скрыть импортированные/демо-кейсы; оставить только созданные вручную в админке
-     * (и не в категории «Демо-кейсы»).
+     * При выключенном показе демо: скрыть всё, что не помечено как ручной кейс из админки
+     * (`is_manual_admin_case`). Импорт и DemoSeeder выставляют false; категория не влияет —
+     * иначе ручной кейс в категории «Демо-кейсы» давал 404 на сайте.
      */
     public function isDemoGameCase(GameCase $case): bool
     {
-        $case->loadMissing('category');
-
-        if ($case->category !== null && $case->category->name === DemoDataMarkers::CASE_CATEGORY_NAME) {
-            return true;
-        }
-
         return ! $case->is_manual_admin_case;
     }
 
     private function applyPublicCatalogCaseVisibilityToGameCasesQuery(Builder $query): void
     {
-        $query->where('is_manual_admin_case', true)
-            ->whereDoesntHave('category', function (Builder $category): void {
-                $category->where('name', DemoDataMarkers::CASE_CATEGORY_NAME);
-            });
+        $query->where('is_manual_admin_case', true);
     }
 }

@@ -169,6 +169,44 @@ class DemoVisibilityApiTest extends TestCase
         $this->assertSame('Admin Case', $response->json('data.0.name'));
     }
 
+    public function test_guest_cases_lists_manual_case_even_in_demo_named_category_when_demo_hidden(): void
+    {
+        SiteSetting::setShowDemoData(false);
+
+        $cat = CaseCategory::query()->create([
+            'name' => DemoDataMarkers::CASE_CATEGORY_NAME,
+            'sort_order' => 0,
+            'is_visible' => true,
+        ]);
+
+        $case = GameCase::query()->create([
+            'name' => 'Admin Case In Demo Category',
+            'image_url' => '/c.png',
+            'price' => 10.00,
+            'category_id' => $cat->id,
+            'sort_order' => 1,
+            'is_active' => false,
+            'is_featured_on_home' => false,
+            'is_manual_admin_case' => true,
+        ]);
+        CaseLevel::query()->create([
+            'case_id' => $case->id,
+            'level' => 1,
+            'name' => 'L1',
+            'chance' => '100.00',
+            'prize_amount' => '5.00',
+        ]);
+        $case->update(['is_active' => true]);
+
+        $this->getJson('/api/v1/cases')
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Admin Case In Demo Category');
+
+        $this->getJson("/api/v1/cases/{$case->id}")
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Admin Case In Demo Category');
+    }
+
     public function test_site_endpoint_reflects_false_after_set_show_demo_data(): void
     {
         SiteSetting::setShowDemoData(false);

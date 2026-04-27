@@ -39,6 +39,12 @@ class GameCase extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (self $case): void {
+            if (! array_key_exists('is_manual_admin_case', $case->getAttributes())) {
+                $case->is_manual_admin_case = true;
+            }
+        });
+
         static::saving(function (self $case): void {
             /** @var CaseEconomyValidator $validator */
             $validator = app(CaseEconomyValidator::class);
