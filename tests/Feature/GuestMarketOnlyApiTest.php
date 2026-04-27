@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\CaseCategory;
+use App\Models\CaseLevel;
 use App\Models\GameCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -36,25 +37,41 @@ class GuestMarketOnlyApiTest extends TestCase
             'is_visible' => true,
         ]);
 
-        GameCase::query()->create([
+        $featured = GameCase::query()->create([
             'name' => 'На главной',
             'image_url' => '/images/demo/case.png',
             'price' => 199.00,
             'category_id' => $category->id,
             'sort_order' => 1,
-            'is_active' => true,
+            'is_active' => false,
             'is_featured_on_home' => true,
         ]);
+        CaseLevel::query()->create([
+            'case_id' => $featured->id,
+            'level' => 1,
+            'name' => 'Уровень 1',
+            'chance' => '100.00',
+            'prize_amount' => '99.50',
+        ]);
+        $featured->update(['is_active' => true]);
 
-        GameCase::query()->create([
+        $notFeatured = GameCase::query()->create([
             'name' => 'Без главной',
             'image_url' => '/images/demo/case2.png',
             'price' => 99.00,
             'category_id' => $category->id,
             'sort_order' => 2,
-            'is_active' => true,
+            'is_active' => false,
             'is_featured_on_home' => false,
         ]);
+        CaseLevel::query()->create([
+            'case_id' => $notFeatured->id,
+            'level' => 1,
+            'name' => 'Уровень 1',
+            'chance' => '100.00',
+            'prize_amount' => '49.50',
+        ]);
+        $notFeatured->update(['is_active' => true]);
 
         GameCase::query()->create([
             'name' => 'Неактивный на главной',
