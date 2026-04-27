@@ -6,22 +6,32 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CancelDealRequest;
+use App\Http\Requests\PaginatedIndexRequest;
 use App\Http\Requests\SendDealRequest;
 use App\Http\Resources\DealResource;
 use App\Models\Deal;
+use App\Services\DemoVisibilityService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class DealController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function __construct(
+        private readonly DemoVisibilityService $demoVisibility,
+    ) {}
+
+    public function index(PaginatedIndexRequest $request): JsonResponse
     {
+        $validated = $request->validated();
         $user = $request->user();
-        $deals = Deal::query()
+        $query = Deal::query()
             ->forParticipant($user)
             ->with(['marketItem.seller'])
-            ->latest()
-            ->paginate(perPage: (int) $request->query('per_page', 20))
+            ->latest();
+
+        $this->demoVisibility->applyHideDemoToDealsQuery($query);
+
+        $deals = $query
+            ->paginate(perPage: (int) ($validated['per_page'] ?? 20))
             ->withQueryString();
 
         return DealResource::collection($deals)->response();

@@ -24,7 +24,7 @@ class BalanceController extends Controller
     {
         $user = $request->user();
 
-        foreach ([BalanceType::Main, BalanceType::Hold] as $type) {
+        foreach ([BalanceType::Main, BalanceType::Bonus, BalanceType::Hold] as $type) {
             Balance::query()->firstOrCreate(
                 [
                     'user_id' => $user->id,
@@ -46,7 +46,7 @@ class BalanceController extends Controller
 
         $transaction = $action->execute($user, $amount);
 
-        foreach ([BalanceType::Main, BalanceType::Hold] as $type) {
+        foreach ([BalanceType::Main, BalanceType::Bonus, BalanceType::Hold] as $type) {
             Balance::query()->firstOrCreate(
                 [
                     'user_id' => $user->id,
@@ -69,6 +69,13 @@ class BalanceController extends Controller
 
     public function depositCallback(DepositCallbackRequest $request, LedgerService $ledger): JsonResponse
     {
+        if (! $this->isDepositCallbackAuthorized($request)) {
+            return response()->json([
+                'message' => 'Некорректная подпись callback.',
+                'errors' => (object) [],
+            ], 401);
+        }
+
         $idempotencyKey = (string) $request->validated('idempotency_key');
         $paymentStatus = (string) $request->validated('status');
         $reason = $request->validated('reason');
@@ -118,5 +125,29 @@ class BalanceController extends Controller
             'message' => 'Заявка на вывод будет обрабатываться через админку.',
             'errors' => (object) [],
         ], 501);
+    }
+
+    private function isDepositCallbackAuthorized(Request $request): bool
+    {
+        $isSignatureRequired = (bool) config('skinsarena.balance.deposit_callback.require_signature', false);
+
+        if (! $isSignatureRequired) {
+            return true;
+        }
+
+        $secret = (string) config('skinsarena.balance.deposit_callback.secret', '');
+        if ($secret === '') {
+            return false;
+        }
+
+        $headerName = (string) config('skinsarena.balance.deposit_callback.signature_header', 'X-SkinsArena-Signature');
+        $providedSignature = (string) $request->headers->get($headerName, '');
+        if ($providedSignature === '') {
+            return false;
+        }
+
+        $calculatedSignature = hash_hmac('sha256', $request->getContent(), $secret);
+
+        return hash_equals($calculatedSignature, $providedSignature);
     }
 }

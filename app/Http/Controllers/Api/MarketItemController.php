@@ -11,10 +11,15 @@ use App\Http\Requests\CreateMarketItemRequest;
 use App\Http\Requests\MarketItemIndexRequest;
 use App\Http\Resources\MarketItemResource;
 use App\Models\MarketItem;
+use App\Services\DemoVisibilityService;
 use Illuminate\Http\JsonResponse;
 
 class MarketItemController extends Controller
 {
+    public function __construct(
+        private readonly DemoVisibilityService $demoVisibility,
+    ) {}
+
     public function index(MarketItemIndexRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -23,6 +28,8 @@ class MarketItemController extends Controller
         $query = MarketItem::query()
             ->active()
             ->with('seller');
+
+        $this->demoVisibility->applyHideDemoToMarketItemsQuery($query);
 
         if (! empty($validated['category'])) {
             $query->where('category', $validated['category']);
@@ -36,8 +43,9 @@ class MarketItemController extends Controller
         if (isset($validated['price_max'])) {
             $query->where('price', '<=', $validated['price_max']);
         }
-        if (! empty($validated['search'])) {
-            $q = '%'.addcslashes($validated['search'], '%_\\').'%';
+        $search = isset($validated['search']) ? trim((string) $validated['search']) : '';
+        if ($search !== '' && mb_strlen($search) >= 2) {
+            $q = '%'.addcslashes($search, '%_\\').'%';
             $query->where('name', 'ilike', $q);
         }
 
@@ -52,6 +60,10 @@ class MarketItemController extends Controller
     public function show(MarketItem $marketItem): JsonResponse
     {
         $marketItem->load('seller');
+
+        if ($this->demoVisibility->shouldHideDemo() && $this->demoVisibility->isDemoMarketItem($marketItem)) {
+            abort(404);
+        }
 
         return MarketItemResource::make($marketItem)->response();
     }

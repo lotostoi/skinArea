@@ -58,7 +58,7 @@ class SteamAuthController extends Controller
             self::AUTH_CODE_TTL_SECONDS,
         );
 
-        return redirect()->away($frontendUrl.'/auth/steam-complete?code='.$code);
+        return redirect()->away($frontendUrl.'/auth/steam-complete#code='.$code);
     }
 
     public function exchange(SteamExchangeCodeRequest $request): JsonResponse

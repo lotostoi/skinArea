@@ -8,6 +8,8 @@ use App\Actions\Market\PurchaseCart;
 use App\Exceptions\InsufficientBalanceException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PurchaseCartRequest;
+use App\Http\Resources\DealResource;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 
@@ -31,18 +33,11 @@ class CartPurchaseController extends Controller
             ], 422);
         }
 
-        $data = array_map(fn ($d) => [
-            'id' => $d->id,
-            'market_item_id' => $d->market_item_id,
-            'price' => (string) $d->price,
-            'commission' => (string) $d->commission,
-            'status' => $d->status->value,
-            'expires_at' => $d->expires_at,
-            'created_at' => $d->created_at,
-        ], $deals);
+        $collection = new Collection($deals);
+        $collection->loadMissing('marketItem');
 
-        return response()->json([
-            'data' => $data,
-        ], 201);
+        return DealResource::collection($collection)
+            ->response()
+            ->setStatusCode(201);
     }
 }

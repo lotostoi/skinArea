@@ -7,6 +7,7 @@ namespace App\Http\Resources;
 use App\Models\GameCase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 
 /**
  * @mixin GameCase
@@ -18,10 +19,18 @@ class GameCaseResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $imageUrl = $this->image_url;
+        if (is_string($imageUrl) && $imageUrl !== '' && ! Str::startsWith($imageUrl, ['http://', 'https://', '/'])) {
+            $publicBaseUrl = rtrim((string) config('filesystems.disks.public.url', '/storage'), '/');
+            $imageUrl = $publicBaseUrl.'/'.ltrim($imageUrl, '/');
+        }
+
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'image_url' => $this->image_url,
+            'description' => $this->description,
+            'shadow_color' => $this->shadow_color,
+            'image_url' => $imageUrl,
             'price' => $this->price,
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,

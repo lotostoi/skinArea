@@ -26,6 +26,8 @@ return [
 
     'cases' => [
         'open_animation_seconds' => (int) env('SKINSARENA_CASE_ANIMATION_SECONDS', 5),
+        'daily_drain_percent' => (float) env('SKINSARENA_CASE_DAILY_DRAIN_PERCENT', 5.0),
+        'anti_unluck_threshold' => (int) env('SKINSARENA_CASE_ANTI_UNLUCK_THRESHOLD', 10),
     ],
 
     'upgrade' => [
@@ -36,6 +38,15 @@ return [
     'balance' => [
         'min_deposit' => (float) env('SKINSARENA_MIN_DEPOSIT', 1.0),
         'min_withdrawal' => (float) env('SKINSARENA_MIN_WITHDRAWAL', 10.0),
+        'deposit_callback' => [
+            'require_signature' => filter_var(
+                env('SKINSARENA_DEPOSIT_CALLBACK_REQUIRE_SIGNATURE', false),
+                FILTER_VALIDATE_BOOLEAN,
+            ),
+            'signature_header' => env('SKINSARENA_DEPOSIT_CALLBACK_SIGNATURE_HEADER', 'X-SkinsArena-Signature'),
+            'secret' => env('SKINSARENA_DEPOSIT_CALLBACK_SECRET', ''),
+            'throttle_per_minute' => (int) env('SKINSARENA_DEPOSIT_CALLBACK_THROTTLE_PER_MINUTE', 60),
+        ],
     ],
 
     'skin_catalog' => [
@@ -43,8 +54,27 @@ return [
             'SKIN_CATALOG_SOURCE_URL',
             'https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/skins.json',
         ),
+        'crates_source_url' => env(
+            'SKIN_CRATES_SOURCE_URL',
+            'https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/crates.json',
+        ),
         'http_timeout_seconds' => (int) env('SKIN_CATALOG_HTTP_TIMEOUT', 120),
         'user_agent' => env('SKIN_CATALOG_USER_AGENT', 'SkinsArena/1.0'),
+    ],
+
+    'skin_prices' => [
+        'provider' => env('SKIN_PRICE_PROVIDER', 'steam'),
+        'steam' => [
+            'http_timeout_seconds' => (int) env('SKIN_PRICE_STEAM_TIMEOUT', 10),
+            'rate_limit_delay_ms' => (int) env('SKIN_PRICE_STEAM_DELAY_MS', 3000),
+            'currency' => (int) env('SKIN_PRICE_STEAM_CURRENCY', 1), // 1=USD
+        ],
+        'pricempire' => [
+            'api_key' => env('PRICEMPIRE_API_KEY', ''),
+            'currency' => env('PRICEMPIRE_CURRENCY', 'USD'),
+            'sources' => env('PRICEMPIRE_SOURCES', 'buff163,steam'),
+            'http_timeout_seconds' => (int) env('PRICEMPIRE_TIMEOUT', 30),
+        ],
     ],
 
     'steam_inventory' => [
@@ -69,6 +99,8 @@ return [
             env('SKINSARENA_STEAM_INVENTORY_ONLY_TRADABLE', 'true'),
             FILTER_VALIDATE_BOOLEAN,
         ),
+        // Кэш инвентаря Steam по пользователю, в секундах (0 — без кэша).
+        'cache_ttl_seconds' => (int) env('SKINSARENA_STEAM_INVENTORY_CACHE_TTL_SECONDS', 300),
         // При 403 со всех URL Steam (датацентр, Docker): http://user:pass@host:port или socks5://127.0.0.1:1080
         'http_proxy' => env('SKINSARENA_STEAM_INVENTORY_HTTP_PROXY'),
     ],

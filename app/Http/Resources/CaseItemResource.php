@@ -25,6 +25,7 @@ class CaseItemResource extends JsonResource
             'price' => $this->price,
             'wear' => $this->wear->value,
             'rarity' => $this->rarity->value,
+            'rarity_color' => $this->rarity->color(),
         ];
     }
 }

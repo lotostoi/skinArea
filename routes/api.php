@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DealController;
 use App\Http\Controllers\Api\MarketItemController;
 use App\Http\Controllers\Api\ProfileCaseInventoryController;
 use App\Http\Controllers\Api\ProfileListingController;
+use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\SteamInventoryController;
 use App\Http\Controllers\Api\SupportTicketController;
 use App\Http\Controllers\Api\TransactionController;
@@ -21,16 +22,21 @@ use App\Http\Controllers\SteamAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
-    Route::post('auth/steam/exchange', [SteamAuthController::class, 'exchange']);
+    Route::post('auth/steam/exchange', [SteamAuthController::class, 'exchange'])
+        ->middleware('throttle:30,1');
+
+    Route::get('site', SiteController::class);
 
     Route::get('market/items', [MarketItemController::class, 'index']);
     Route::get('market/items/{market_item}', [MarketItemController::class, 'show']);
 
     Route::get('cases/featured', [CaseController::class, 'featured']);
+    Route::get('cases/live', [CaseController::class, 'live']);
     Route::get('cases', [CaseController::class, 'index']);
     Route::get('cases/{caseId}', [CaseController::class, 'show'])->whereNumber('caseId');
 
-    Route::post('balance/deposit/callback', [BalanceController::class, 'depositCallback']);
+    Route::post('balance/deposit/callback', [BalanceController::class, 'depositCallback'])
+        ->middleware('throttle:balance-callback');
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('auth/logout', [SteamAuthController::class, 'logout']);
@@ -66,6 +72,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('cases/{caseId}/open', [CaseController::class, 'open'])->whereNumber('caseId');
 
         Route::get('profile/case-inventory', [ProfileCaseInventoryController::class, 'index']);
+        Route::get('profile/case-inventory/summary', [ProfileCaseInventoryController::class, 'summary']);
         Route::post('profile/case-inventory/{case_opening}/sell', [ProfileCaseInventoryController::class, 'sell']);
         Route::post('profile/case-inventory/{case_opening}/withdraw', [ProfileCaseInventoryController::class, 'withdraw']);
 

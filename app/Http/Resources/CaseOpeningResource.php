@@ -24,6 +24,7 @@ class CaseOpeningResource extends JsonResource
             'won_item_price' => $this->won_item_price,
             'status' => $this->status->value,
             'created_at' => $this->created_at,
+            'source' => 'case_open',
             'case' => new GameCaseResource($this->whenLoaded('gameCase')),
             'won_item' => new CaseItemResource($this->whenLoaded('caseItem')),
         ];
