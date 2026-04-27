@@ -9,13 +9,20 @@ const balance = useBalanceStore()
 const depositModal = useDepositModalStore()
 
 const navItems = computed(() => {
-  const items = [{ to: '/market', label: 'Маркет' }]
+  const guestItems = [
+    { to: '/market', label: 'Маркет' },
+  ]
+
+  const authItems = [
+    ...guestItems,
+    { to: '/cases', label: 'Кейсы' },
+  ]
+
   if (!auth.isAuthenticated) {
-    return items
+    return guestItems
   }
   return [
-    ...items,
-    { to: '/cases', label: 'Кейсы' },
+    ...authItems,
     { to: '/upgrade', label: 'Апгрейд' },
     { to: '/support', label: 'Поддержка' },
   ]

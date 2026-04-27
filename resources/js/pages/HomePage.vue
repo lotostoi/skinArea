@@ -6,10 +6,11 @@ import AppButton from '@/components/ui/AppButton.vue'
 import MarketItemCard from '@/components/market/MarketItemCard.vue'
 import CaseCardSkeleton from '@/components/ui/CaseCardSkeleton.vue'
 import MarketItemCardSkeleton from '@/components/ui/MarketItemCardSkeleton.vue'
-import { fetchMarketItems, fetchFeaturedCases } from '@/utils/market'
+import { fetchMarketItems, fetchFeaturedCases, fetchSiteSettings } from '@/utils/market'
 import type { MarketItem, GameCase } from '@/types/models'
 import { useCartStore } from '@/stores/cart'
 import { formatPrice } from '@/utils/format'
+import { gameCaseCoverImgAttrs } from '@/utils/caseVisual'
 
 const auth = useAuthStore()
 const cart = useCartStore()
@@ -23,6 +24,8 @@ const liveItemsLoading = ref(true)
 const featuredCases = ref<GameCase[]>([])
 const featuredCasesLoading = ref(true)
 const featuredCasesError = ref(false)
+/** Если false — не подставляем статичные картинки кейсов (витрина только из API). */
+const showDemoData = ref(true)
 
 const caseFallbackImages = [
   `${ASSET}/goods/csgo/case/chroma.png`,
@@ -34,6 +37,15 @@ const caseFallbackImages = [
   `${ASSET}/goods/csgo/case/revolver.png`,
   `${ASSET}/goods/csgo/case/wildfire.png`,
 ] as const
+
+type HomeShowcaseCase = {
+  id: number
+  title: string
+  price: string
+  image: string
+  live: boolean
+  shadow_color: string | null
+}
 
 const casesFallback = [
   { id: 1, title: 'Chroma', price: '249 ₽', image: caseFallbackImages[0] },
@@ -64,20 +76,26 @@ const marqueeStrip = [
   `${ASSET}/goods/csgo/case/knifecovert.png`,
 ] as const
 
-const casesForShowcase = computed(() => {
+const casesForShowcase = computed((): HomeShowcaseCase[] => {
   if (featuredCases.value.length > 0) {
-    return featuredCases.value.map((c) => ({
+    return featuredCases.value.map((c): HomeShowcaseCase => ({
       id: c.id,
       title: c.name,
       price: formatPrice(c.price),
       image: c.image_url || caseFallbackImages[0],
-      live: true as const,
+      shadow_color: c.shadow_color ?? null,
+      live: true,
     }))
   }
-  return casesFallback.map((c) => ({ ...c, live: false as const }))
+  if (showDemoData.value) {
+    return casesFallback.map(
+      (c): HomeShowcaseCase => ({ ...c, shadow_color: null, live: false }),
+    )
+  }
+  return []
 })
 
-type MarqueeItem = { src: string; alt: string; caseId: number | null }
+type MarqueeItem = { src: string; alt: string; caseId: number | null; shadow_color?: string | null }
 
 const marqueeFallbackItems = computed((): MarqueeItem[] =>
   marqueeStrip.map((src) => ({ src, alt: '', caseId: null })),
@@ -89,28 +107,24 @@ const marqueeItems = computed((): MarqueeItem[] => {
       src: c.image_url || caseFallbackImages[0],
       alt: c.name,
       caseId: c.id,
+      shadow_color: c.shadow_color ?? null,
     }))
   }
-  return marqueeFallbackItems.value
+  if (showDemoData.value) {
+    return marqueeFallbackItems.value
+  }
+  return []
 })
 
 const heroBannerImage = `${ASSET}/slider/csgo/sl-1.jpg`
 const steamBannerImage = `${ASSET}/banner-2.jpg`
 
 function goCases(): void {
-  if (auth.isAuthenticated) {
-    void router.push({ name: 'cases' })
-    return
-  }
-  auth.steamLogin()
+  void router.push({ name: 'cases' })
 }
 
 function goCase(id: number): void {
-  if (auth.isAuthenticated) {
-    void router.push({ name: 'case-detail', params: { id } })
-    return
-  }
-  auth.steamLogin()
+  void router.push({ name: 'case-detail', params: { id } })
 }
 
 function onMarqueeClick(item: MarqueeItem): void {
@@ -138,6 +152,13 @@ function toggleCart(it: MarketItem): void {
 }
 
 onMounted(async () => {
+  try {
+    const site = await fetchSiteSettings()
+    showDemoData.value = site.show_demo_data
+  } catch {
+    showDemoData.value = true
+  }
+
   try {
     const res = await fetchMarketItems({ page: 1, per_page: 12 })
     liveItems.value = res.data
@@ -178,6 +199,9 @@ onMounted(async () => {
           </div>
         </template>
       </div>
+      <div v-else-if="marqueeItems.length === 0" class="px-4 py-2 text-center text-xs text-text-muted">
+        Бегущая строка с кейсами появится после добавления популярных кейсов или при включении демо-витрины.
+      </div>
       <div v-else class="marquee-track">
         <template v-for="dup in [0, 1]" :key="dup">
           <button
@@ -188,9 +212,16 @@ onMounted(async () => {
             @click="onMarqueeClick(item)"
           >
             <img
+              v-bind="
+                gameCaseCoverImgAttrs({
+                  shadowColor: item.shadow_color,
+                  tailwindFallback: 'drop-shadow-md',
+                  baseClass:
+                    'h-14 w-auto md:h-[4.5rem] max-w-[100px] md:max-w-[120px] object-contain pointer-events-none',
+                })
+              "
               :src="item.src"
               :alt="item.alt"
-              class="h-14 w-auto md:h-[4.5rem] max-w-[100px] md:max-w-[120px] object-contain drop-shadow-md pointer-events-none"
               width="120"
               height="72"
               loading="lazy"
@@ -258,7 +289,11 @@ onMounted(async () => {
           <p class="text-sm text-text-secondary mt-1">
             Подборка для главной задаётся в админке
             <span v-if="featuredCases.length > 0" class="text-text-muted">· активные отмеченные кейсы</span>
-            <span v-else-if="featuredCasesError" class="text-text-muted">· не удалось загрузить, показаны примеры</span>
+            <span v-else-if="featuredCasesError && showDemoData" class="text-text-muted">· не удалось загрузить, показаны примеры</span>
+            <span
+              v-else-if="!showDemoData && featuredCases.length === 0 && !featuredCasesLoading"
+              class="text-text-muted"
+            >· демо-витрина отключена в настройках</span>
           </p>
         </div>
         <router-link v-if="auth.isAuthenticated" to="/cases" class="text-sm font-semibold text-primary hover:text-primary-light shrink-0">
@@ -281,6 +316,13 @@ onMounted(async () => {
             <CaseCardSkeleton ribbon />
           </div>
         </template>
+        <template v-else-if="casesForShowcase.length === 0">
+          <div
+            class="snap-start min-w-0 flex-1 rounded-lg border border-border bg-surface px-6 py-10 text-center text-text-secondary text-sm"
+          >
+            Популярных кейсов пока нет. Добавьте кейсы в админке или включите показ демо-данных.
+          </div>
+        </template>
         <template v-else>
           <button
             v-for="c in casesForShowcase"
@@ -293,9 +335,15 @@ onMounted(async () => {
               class="aspect-[4/5] rounded-lg border border-border overflow-hidden bg-input flex items-center justify-center p-3 transition-transform duration-200 group-hover:scale-[1.03] group-hover:border-border-hover group-hover:shadow-lg"
             >
               <img
+                v-bind="
+                  gameCaseCoverImgAttrs({
+                    shadowColor: c.shadow_color,
+                    tailwindFallback: 'drop-shadow-md',
+                    baseClass: 'max-h-full max-w-full object-contain',
+                  })
+                "
                 :src="c.image"
                 :alt="c.title"
-                class="max-h-full max-w-full object-contain drop-shadow-md"
                 width="160"
                 height="200"
                 loading="lazy"

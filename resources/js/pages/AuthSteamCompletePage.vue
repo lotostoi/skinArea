@@ -9,7 +9,10 @@ const auth = useAuthStore()
 const error = ref<string | null>(null)
 
 onMounted(async () => {
-  const code = route.query.code as string | undefined
+  let code = route.query.code as string | undefined
+  if (!code && window.location.hash.startsWith('#code=')) {
+    code = decodeURIComponent(window.location.hash.slice('#code='.length))
+  }
 
   if (!code) {
     error.value = 'Код авторизации отсутствует'

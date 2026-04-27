@@ -1,24 +1,36 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppButton from '@/components/ui/AppButton.vue'
 import CaseCardSkeleton from '@/components/ui/CaseCardSkeleton.vue'
 import EmptyStateGraphic from '@/components/ui/EmptyStateGraphic.vue'
-import { fetchCases } from '@/utils/market'
+import { fetchCaseLiveFeed, fetchCases } from '@/utils/market'
+import type { CaseOpeningFeedEntry } from '@/utils/market'
 import type { GameCase } from '@/types/models'
 import { formatPrice } from '@/utils/format'
+import { gameCaseCoverImgAttrs } from '@/utils/caseVisual'
+import { useBalanceStore } from '@/stores/balance'
 
 const router = useRouter()
+const balance = useBalanceStore()
 
 const cases = ref<GameCase[]>([])
+const liveFeed = ref<CaseOpeningFeedEntry[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+const liveFeedMode = ref<'all' | 'top'>('all')
+const search = ref('')
+const minPrice = ref<string>('')
+const maxPrice = ref<string>('')
+const onlyAffordable = ref(false)
 
 type SortKey = 'default' | 'price_asc' | 'price_desc' | 'name_asc'
 const sort = ref<SortKey>('default')
 const categoryFilter = ref<number | null>(null)
+let liveFeedInterval: ReturnType<typeof setInterval> | null = null
 
 const skeletonPlaceholders = 15
+const availableBalance = computed(() => Number(balance.mainBalance) + Number(balance.bonusBalance))
 
 const groupedCategories = computed(() => {
   const map = new Map<number, { id: number; name: string; order: number }>()
@@ -34,22 +46,43 @@ const groupedCategories = computed(() => {
 
 const filteredSortedCases = computed(() => {
   let list = cases.value.slice()
-  if (categoryFilter.value !== null) {
-    list = list.filter((c) => c.category_id === categoryFilter.value)
+
+  const q = search.value.trim().toLowerCase()
+  if (q.length > 0) {
+    list = list.filter((c: GameCase) => c.name.toLowerCase().includes(q))
   }
+
+  if (categoryFilter.value !== null) {
+    list = list.filter((c: GameCase) => c.category_id === categoryFilter.value)
+  }
+
+  const min = Number(minPrice.value)
+  if (!Number.isNaN(min) && minPrice.value !== '') {
+    list = list.filter((c: GameCase) => Number(c.price) >= min)
+  }
+
+  const max = Number(maxPrice.value)
+  if (!Number.isNaN(max) && maxPrice.value !== '') {
+    list = list.filter((c: GameCase) => Number(c.price) <= max)
+  }
+
+  if (onlyAffordable.value) {
+    list = list.filter((c: GameCase) => Number(c.price) <= availableBalance.value)
+  }
+
   switch (sort.value) {
     case 'price_asc':
-      list.sort((a, b) => Number(a.price) - Number(b.price))
+      list.sort((a: GameCase, b: GameCase) => Number(a.price) - Number(b.price))
       break
     case 'price_desc':
-      list.sort((a, b) => Number(b.price) - Number(a.price))
+      list.sort((a: GameCase, b: GameCase) => Number(b.price) - Number(a.price))
       break
     case 'name_asc':
-      list.sort((a, b) => a.name.localeCompare(b.name))
+      list.sort((a: GameCase, b: GameCase) => a.name.localeCompare(b.name))
       break
     default:
       list.sort(
-        (a, b) =>
+        (a: GameCase, b: GameCase) =>
           (a.category?.sort_order ?? 0) - (b.category?.sort_order ?? 0) ||
           (a.sort_order ?? 0) - (b.sort_order ?? 0),
       )
@@ -57,18 +90,53 @@ const filteredSortedCases = computed(() => {
   return list
 })
 
+const renderedLiveFeed = computed(() => {
+  if (liveFeedMode.value === 'all') {
+    return liveFeed.value
+  }
+  return liveFeed.value
+    .slice()
+    .sort((a: CaseOpeningFeedEntry, b: CaseOpeningFeedEntry) => Number(b.won_item_price) - Number(a.won_item_price))
+    .slice(0, 12)
+})
+
 function goCase(c: GameCase): void {
   void router.push({ name: 'case-detail', params: { id: c.id } })
+}
+
+function goCaseById(caseId: number | null): void {
+  if (caseId === null) return
+  void router.push({ name: 'case-detail', params: { id: caseId } })
+}
+
+async function loadLiveFeed(): Promise<void> {
+  try {
+    liveFeed.value = await fetchCaseLiveFeed()
+  } catch {
+    liveFeed.value = []
+  }
 }
 
 onMounted(async () => {
   loading.value = true
   try {
+    await balance.fetchBalances()
     cases.value = await fetchCases()
+    await loadLiveFeed()
+    liveFeedInterval = setInterval(() => {
+      void loadLiveFeed()
+    }, 15000)
   } catch {
     error.value = 'Не удалось загрузить кейсы'
   } finally {
     loading.value = false
+  }
+})
+
+onUnmounted(() => {
+  if (liveFeedInterval) {
+    clearInterval(liveFeedInterval)
+    liveFeedInterval = null
   }
 })
 </script>
@@ -93,6 +161,79 @@ onMounted(async () => {
           <option value="name_asc">По названию</option>
         </select>
       </div>
+    </div>
+
+    <section class="rounded-xl border border-border bg-surface p-4">
+      <div class="mb-3 flex items-center justify-between gap-3 flex-wrap">
+        <h2 class="text-sm font-semibold text-text-primary uppercase tracking-wider">Live-лента открытий</h2>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="text-xs px-2.5 py-1 rounded-md border transition-colors"
+            :class="liveFeedMode === 'all'
+              ? 'border-primary text-primary bg-primary/10'
+              : 'border-border text-text-secondary hover:text-text-primary'"
+            @click="liveFeedMode = 'all'"
+          >
+            Все
+          </button>
+          <button
+            type="button"
+            class="text-xs px-2.5 py-1 rounded-md border transition-colors"
+            :class="liveFeedMode === 'top'
+              ? 'border-primary text-primary bg-primary/10'
+              : 'border-border text-text-secondary hover:text-text-primary'"
+            @click="liveFeedMode = 'top'"
+          >
+            Топ
+          </button>
+        </div>
+      </div>
+      <div v-if="renderedLiveFeed.length > 0" class="flex gap-2 overflow-x-auto pb-1">
+        <button
+          v-for="drop in renderedLiveFeed"
+          :key="`drop-${drop.id}`"
+          type="button"
+          class="min-w-[240px] rounded-lg border border-border bg-body/40 p-2.5 text-left hover:border-border-hover transition-colors"
+          @click="goCaseById(drop.case.id)"
+        >
+          <p class="text-[11px] text-text-muted line-clamp-1">{{ drop.user.username ?? 'Игрок' }} · {{ drop.case.name ?? 'Кейс' }}</p>
+          <p class="text-xs text-text-primary font-medium mt-1 line-clamp-1">{{ drop.item.name ?? 'Предмет' }}</p>
+          <p class="text-sm text-primary font-bold mt-1">{{ formatPrice(drop.won_item_price) }}</p>
+        </button>
+      </div>
+      <p v-else class="text-sm text-text-muted">Лента пока пуста.</p>
+    </section>
+
+    <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <input
+        v-model="search"
+        type="text"
+        placeholder="Поиск по названию кейса"
+        class="bg-input border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-border-focus focus:outline-none"
+      >
+      <input
+        v-model="minPrice"
+        type="number"
+        min="0"
+        placeholder="Цена от"
+        class="bg-input border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-border-focus focus:outline-none"
+      >
+      <input
+        v-model="maxPrice"
+        type="number"
+        min="0"
+        placeholder="Цена до"
+        class="bg-input border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-border-focus focus:outline-none"
+      >
+      <label class="inline-flex items-center gap-2 text-sm text-text-secondary px-1">
+        <input
+          v-model="onlyAffordable"
+          type="checkbox"
+          class="h-4 w-4 rounded border-border bg-input text-primary focus:ring-primary"
+        >
+        Доступные по моему балансу
+      </label>
     </div>
 
     <div v-if="groupedCategories.length > 1" class="flex flex-wrap items-center gap-2">
@@ -148,9 +289,16 @@ onMounted(async () => {
           <div class="aspect-[4/5] bg-input rounded-md mb-3 flex items-center justify-center overflow-hidden p-3">
             <img
               v-if="c.image_url"
+              v-bind="
+                gameCaseCoverImgAttrs({
+                  shadowColor: c.shadow_color,
+                  tailwindFallback: 'drop-shadow-md',
+                  baseClass:
+                    'max-w-full max-h-full object-contain group-hover:scale-105 transition-transform',
+                })
+              "
               :src="c.image_url"
               :alt="c.name"
-              class="max-w-full max-h-full object-contain drop-shadow-md group-hover:scale-105 transition-transform"
               loading="lazy"
             />
           </div>

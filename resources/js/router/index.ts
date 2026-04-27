@@ -33,13 +33,11 @@ const router = createRouter({
           path: 'cases',
           name: 'cases',
           component: () => import('@/pages/CasesPage.vue'),
-          meta: { requiresAuth: true },
         },
         {
           path: 'cases/:id(\\d+)',
           name: 'case-detail',
           component: () => import('@/pages/CaseDetailPage.vue'),
-          meta: { requiresAuth: true },
         },
         {
           path: 'upgrade',

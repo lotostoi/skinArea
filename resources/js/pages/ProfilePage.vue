@@ -7,13 +7,14 @@ import ProfileInventoryTab from '@/components/profile/ProfileInventoryTab.vue'
 import ProfileTransactionsTab from '@/components/profile/ProfileTransactionsTab.vue'
 import ProfileDealsTab from '@/components/profile/ProfileDealsTab.vue'
 import ProfileSettingsTab from '@/components/profile/ProfileSettingsTab.vue'
+import CaseInventoryTab from '@/components/profile/CaseInventoryTab.vue'
 import ListForSaleModal from '@/components/profile/ListForSaleModal.vue'
 import AppSpinner from '@/components/ui/AppSpinner.vue'
 import { createMarketListing } from '@/utils/market'
 import type { SteamInventoryItem } from '@/utils/market'
 import { showAppAlert } from '@/composables/appDialog'
 
-type CabinetTab = 'transactions' | 'inventory' | 'deals' | 'settings'
+type CabinetTab = 'transactions' | 'inventory' | 'deals' | 'settings' | 'case-inventory'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -56,6 +57,7 @@ onMounted(async () => {
 
 const tabs: { id: CabinetTab; label: string }[] = [
   { id: 'inventory', label: 'Мой инвентарь' },
+  { id: 'case-inventory', label: 'Кейсы' },
   { id: 'transactions', label: 'Транзакции' },
   { id: 'deals', label: 'Мои сделки' },
   { id: 'settings', label: 'Настройки' },
@@ -165,6 +167,8 @@ function onListingsChanged() {
       />
 
       <ProfileTransactionsTab v-if="activeTab === 'transactions'" />
+
+      <CaseInventoryTab v-if="activeTab === 'case-inventory'" />
 
       <ProfileDealsTab v-if="activeTab === 'deals'" />
 

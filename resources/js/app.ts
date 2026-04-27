@@ -11,6 +11,10 @@ async function bootstrap(): Promise<void> {
 
   const auth = useAuthStore()
 
+  window.addEventListener('skinsarena:auth-expired', () => {
+    auth.logout({ server: false })
+  })
+
   // Load user BEFORE registering the router so that when the router fires
   // its initial navigation guard, auth.user is already populated.
   // This prevents a race condition where both bootstrap AND the guard call

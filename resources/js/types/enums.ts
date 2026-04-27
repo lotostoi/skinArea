@@ -1,5 +1,6 @@
 export enum BalanceType {
   Main = 'main',
+  Bonus = 'bonus',
   Hold = 'hold',
 }
 

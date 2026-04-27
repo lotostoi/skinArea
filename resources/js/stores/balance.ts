@@ -67,6 +67,12 @@ export const useBalanceStore = defineStore('balance', () => {
     ),
   )
 
+  const bonusBalance = computed(() =>
+    formatAmount(
+      balances.value.find((b) => balanceTypeKey(b.type) === BalanceType.Bonus)?.amount,
+    ),
+  )
+
   async function fetchBalances(fallback?: unknown): Promise<void> {
     let list: Balance[] = []
     try {
@@ -81,5 +87,5 @@ export const useBalanceStore = defineStore('balance', () => {
     balances.value = list
   }
 
-  return { balances, mainBalance, holdBalance, fetchBalances }
+  return { balances, mainBalance, bonusBalance, holdBalance, fetchBalances }
 })

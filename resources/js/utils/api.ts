@@ -32,7 +32,10 @@ api.interceptors.response.use(
       const isSteamExchange = url.includes('auth/steam/exchange')
       if (!isSteamExchange) {
         localStorage.removeItem('auth_token')
-        window.location.href = '/'
+        window.dispatchEvent(new CustomEvent('skinsarena:auth-expired'))
+        if (window.location.pathname !== '/') {
+          window.location.assign('/')
+        }
       }
     }
     return Promise.reject(error)

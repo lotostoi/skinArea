@@ -61,6 +61,8 @@ export interface GameCaseCategory {
 export interface GameCase {
   id: number
   name: string
+  description?: string | null
+  shadow_color?: string | null
   image_url: string
   price: string
   is_active: boolean
@@ -88,6 +90,7 @@ export interface CaseItem {
   price: string
   wear: string
   rarity: string
+  rarity_color?: string
 }
 
 export interface CaseOpening {
@@ -98,8 +101,10 @@ export interface CaseOpening {
   cost: string
   won_item_price: string
   status: string
+  source?: 'case_open' | 'upgrade'
   created_at: string
-  case_item?: CaseItem
+  won_item?: CaseItem
+  case?: GameCase
 }
 
 export type TransactionStatus = 'pending' | 'posted' | 'reversed' | 'failed' | 'cancelled'
