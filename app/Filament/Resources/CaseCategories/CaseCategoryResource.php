@@ -10,11 +10,13 @@ use App\Filament\Resources\CaseCategories\Pages\ListCaseCategories;
 use App\Filament\Resources\CaseCategories\Schemas\CaseCategoryForm;
 use App\Filament\Resources\CaseCategories\Tables\CaseCategoriesTable;
 use App\Models\CaseCategory;
+use App\Services\DemoVisibilityService;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class CaseCategoryResource extends Resource
@@ -55,5 +57,13 @@ class CaseCategoryResource extends Resource
             'create' => CreateCaseCategory::route('/create'),
             'edit' => EditCaseCategory::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        app(DemoVisibilityService::class)->applyHideDemoToCaseCategoriesQuery($query);
+
+        return $query;
     }
 }

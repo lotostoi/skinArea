@@ -8,6 +8,7 @@ use App\Filament\Resources\Balances\Pages\ListBalances;
 use App\Filament\Resources\Balances\Schemas\BalanceForm;
 use App\Filament\Resources\Balances\Tables\BalancesTable;
 use App\Models\Balance;
+use App\Services\DemoVisibilityService;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -72,6 +73,9 @@ class BalanceResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('user');
+        $query = parent::getEloquentQuery()->with('user');
+        app(DemoVisibilityService::class)->applyHideDemoToBalancesQuery($query);
+
+        return $query;
     }
 }

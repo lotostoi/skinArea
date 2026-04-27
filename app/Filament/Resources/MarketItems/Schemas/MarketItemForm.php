@@ -33,7 +33,9 @@ class MarketItemForm
                     ->required(),
                 FileUpload::make('image_url')
                     ->label('Изображение')
-                    ->image(),
+                    ->image()
+                    ->disk('public')
+                    ->directory('market-items'),
                 Select::make('wear')
                     ->label('Износ')
                     ->options(ItemWear::class)

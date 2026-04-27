@@ -9,6 +9,7 @@ use App\Filament\Resources\MarketItems\Pages\ListMarketItems;
 use App\Filament\Resources\MarketItems\Schemas\MarketItemForm;
 use App\Filament\Resources\MarketItems\Tables\MarketItemsTable;
 use App\Models\MarketItem;
+use App\Services\DemoVisibilityService;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -67,6 +68,9 @@ class MarketItemResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('seller');
+        $query = parent::getEloquentQuery()->with('seller');
+        app(DemoVisibilityService::class)->applyHideDemoToMarketItemsQuery($query);
+
+        return $query;
     }
 }

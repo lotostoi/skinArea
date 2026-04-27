@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\CaseLevels;
 
+use App\Filament\Resources\CaseLevels\Pages\AddSkinsToCaseLevel;
 use App\Filament\Resources\CaseLevels\Pages\CreateCaseLevel;
 use App\Filament\Resources\CaseLevels\Pages\EditCaseLevel;
 use App\Filament\Resources\CaseLevels\Pages\ListCaseLevels;
@@ -11,11 +12,13 @@ use App\Filament\Resources\CaseLevels\RelationManagers\ItemsRelationManager;
 use App\Filament\Resources\CaseLevels\Schemas\CaseLevelForm;
 use App\Filament\Resources\CaseLevels\Tables\CaseLevelsTable;
 use App\Models\CaseLevel;
+use App\Services\DemoVisibilityService;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CaseLevelResource extends Resource
 {
@@ -50,6 +53,15 @@ class CaseLevelResource extends Resource
             'index' => ListCaseLevels::route('/'),
             'create' => CreateCaseLevel::route('/create'),
             'edit' => EditCaseLevel::route('/{record}/edit'),
+            'add-skins' => AddSkinsToCaseLevel::route('/{record}/add-skins'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        app(DemoVisibilityService::class)->applyHideDemoToCaseLevelsQuery($query);
+
+        return $query;
     }
 }
